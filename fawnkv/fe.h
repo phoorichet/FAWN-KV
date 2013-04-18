@@ -9,11 +9,11 @@
 #include "FawnKVFrontend.h"
 #include "FawnKVManager.h"
 
-#include <protocol/TBinaryProtocol.h>
-#include <server/TThreadedServer.h>
-#include <transport/TSocket.h>
-#include <transport/TServerSocket.h>
-#include <transport/TBufferTransports.h>
+#include <thrift/protocol/TBinaryProtocol.h>
+#include <thrift/server/TThreadedServer.h>
+#include <thrift/transport/TSocket.h>
+#include <thrift/transport/TServerSocket.h>
+#include <thrift/transport/TBufferTransports.h>
 
 using namespace ::apache::thrift;
 using namespace ::apache::thrift::protocol;

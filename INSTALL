@@ -17,6 +17,9 @@ thrift may require the following packages to build: bison flex ruby-dev python-d
 You may also need to install a more specific boost package (libboost-thread-dev) for FAWN-KV.
 
 
+Make sure that LD_LIBRARY_PATH is set to support dynamic loader 
+export LD_LIBRARY_PATH=/usr/local/lib
+
 1. autoreconf -is
 2. ./configure [--with-ycsb]
 3. make

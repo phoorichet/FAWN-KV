@@ -45,7 +45,7 @@ AC_CHECK_LIB([gtest_main], [main], [], [echo "gtest_main not found.  Please inst
 AC_CHECK_LIB([pthread], [pthread_mutex_init], [], [echo "pthreads not found.  Please install pthread library before proceeding"; exit -1])
 AC_CHECK_LIB([boost_thread-mt], [main], [], [echo "boost library not found.  Please install boost library before proceeding"; exit -1])
 AC_CHECK_LIB([crypto], [main], [], [echo "openssl crypto library not found.  Please install openssl library before proceeding"; exit -1])
-PKG_CHECK_MODULES(THRIFT, thrift, )
+AC_CHECK_LIB([thrift], [main], [], [echo "apache thrift library not found.  Please install apache thrift library before proceeding"; exit -1])
 CXXFLAGS="$CXXFLAGS $THRIFT_CFLAGS"
 
 AC_LIBRARY_NET
@@ -82,7 +82,7 @@ AC_TYPE_SIGNAL
 AC_CHECK_FUNCS([bzero ftruncate gethostbyname getpagesize gettimeofday inet_ntoa memchr memmove memset munmap select socket strdup strerror strtol strtoul strtoull])
 
 CFLAGS="$CFLAGS -Wall -Wextra"
-CXXFLAGS="$CXXFLAGS -Wall -Wextra -Wno-unused-parameter -Wno-unused-variable"
+CXXFLAGS="$CXXFLAGS -Wall -Wextra -Wno-unused-parameter -Wno-unused-variable -Wl,-rpath,'/usr/local/lib'"
 
 AC_CONFIG_FILES([ Makefile
 		  utils/Makefile

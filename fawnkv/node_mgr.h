@@ -16,8 +16,8 @@
 #include <signal.h>
 #include <tbb/atomic.h>
 #include <tbb/concurrent_queue.h>
-#include <transport/TTransportUtils.h>
-#include <server/TThreadedServer.h>
+#include <thrift/transport/TTransportUtils.h>
+#include <thrift/server/TThreadedServer.h>
 
 #include "dbid.h"
 #include "fawnds.h"

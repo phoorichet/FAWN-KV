@@ -5,7 +5,7 @@
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <string>
-#include <transport/TTransportUtils.h>
+#include <thrift/transport/TTransportUtils.h>
 
 #include "dbid.h"
 #include "FawnKVFrontend.h"
