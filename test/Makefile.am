@@ -1,1 +1,1 @@
-SUBDIRS = fawnds management
+SUBDIRS = fawnds management siltds

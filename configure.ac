@@ -46,6 +46,14 @@ AC_CHECK_LIB([pthread], [pthread_mutex_init], [], [echo "pthreads not found.  Pl
 AC_CHECK_LIB([boost_thread-mt], [main], [], [echo "boost library not found.  Please install boost library before proceeding"; exit -1])
 AC_CHECK_LIB([crypto], [main], [], [echo "openssl crypto library not found.  Please install openssl library before proceeding"; exit -1])
 AC_CHECK_LIB([thrift], [main], [], [echo "apache thrift library not found.  Please install apache thrift library before proceeding"; exit -1])
+AC_CHECK_LIB([xerces-c], [main], [], [echo "Xerces XML parsing library not found.  Please install xerces library before proceeding"; exit -1])
+AC_CHECK_LIB([m], [cos], [], [echo "m library not found.  Please install m library before proceeding"; exit -1])
+AC_CHECK_LIB([gslcblas], [cblas_dgemm], [], [echo "gsl library not found.  Please install gsl library before proceeding"; exit -1])
+AC_CHECK_LIB([gsl], [gsl_blas_dgemm], [], [echo "gsl library not found.  Please install gsl library before proceeding"; exit -1])
+AC_CHECK_LIB([nsort], [nsort_define], [], [echo "nsort library not found.  An inferior sorting will be used."])
+AC_CHECK_LIB([db], [db_create], [], [echo "Berkeley Database library not found.  Support for BDB will be excluded."])
+AC_CHECK_LIB([rt], [main], [], [echo "rt library not found."])
+
 CXXFLAGS="$CXXFLAGS $THRIFT_CFLAGS"
 
 AC_LIBRARY_NET
@@ -94,6 +102,9 @@ AC_CONFIG_FILES([ Makefile
 		  lib/java/Makefile
 		  test/Makefile
 		  test/fawnds/Makefile
-		  test/management/Makefile])
+		  test/management/Makefile
+      siltds/Makefile
+      test/siltds/Makefile
+    ])
 
 AC_OUTPUT

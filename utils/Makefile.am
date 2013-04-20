@@ -1,6 +1,6 @@
 noinst_LTLIBRARIES = libfawnkvutils.la
-noinst_HEADERS = hashutil.h dbid.h print.h timing.h fawnnet.h fnv.h debug.h
-libfawnkvutils_la_SOURCES = hashutil.cc dbid.cc print.cc timing.c fawnnet.cc
+noinst_HEADERS = hashutil.h hashutilSilt.h dbid.h print.h timing.h fawnnet.h fnv.h debug.h
+libfawnkvutils_la_SOURCES = hashutil.cc hashutilSilt.cc dbid.cc print.cc timing.c fawnnet.cc
 
 # kaminsky: following line forces noinst_* libraries to build
 # shared.  This can help with development because a change to
