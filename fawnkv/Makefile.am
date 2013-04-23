@@ -34,8 +34,8 @@ SKELETON_CODE = 						\
 BUILT_SOURCES = $(nodist_libfawnkv_la_SOURCES)
 
 $(nodist_libfawnkv_la_SOURCES) : fawnkv.thrift fawnkvmesg.thrift
-	~/libs/bin/thrift -r -o $(builddir) --gen cpp $(srcdir)/fawnkvmesg.thrift
-	~/libs/bin/thrift -r -o $(builddir) --gen cpp $(srcdir)/fawnkv.thrift
+	thrift -r -o $(builddir) --gen cpp $(srcdir)/fawnkvmesg.thrift
+	thrift -r -o $(builddir) --gen cpp $(srcdir)/fawnkv.thrift
 
 libfawnkv_la_SOURCES = 				\
 	fawnkvmesg.thrift 			\

@@ -48,10 +48,10 @@ AC_CHECK_LIB([crypto], [main], [], [echo "openssl crypto library not found.  Ple
 #AC_CHECK_LIB([thrift], [main], [], [echo "apache thrift library not found.  Please install apache thrift library before proceeding"; exit -1])
 #AC_CHECK_LIB([xerces-c], [main], [], [echo "Xerces XML parsing library not found.  Please install xerces library before proceeding"; exit -1])
 AC_CHECK_LIB([m], [cos], [], [echo "m library not found.  Please install m library before proceeding"; exit -1])
-AC_CHECK_LIB([gslcblas], [cblas_dgemm], [], [echo "gsl library not found.  Please install gsl library before proceeding"; exit -1])
-AC_CHECK_LIB([gsl], [gsl_blas_dgemm], [], [echo "gsl library not found.  Please install gsl library before proceeding"; exit -1])
+#AC_CHECK_LIB([gslcblas], [cblas_dgemm], [], [echo "gsl library not found.  Please install gsl library before proceeding"; exit -1])
+#AC_CHECK_LIB([gsl], [gsl_blas_dgemm], [], [echo "gsl library not found.  Please install gsl library before proceeding"; exit -1])
 AC_CHECK_LIB([nsort], [nsort_define], [], [echo "nsort library not found.  An inferior sorting will be used."])
-AC_CHECK_LIB([db], [db_create], [], [echo "Berkeley Database library not found.  Support for BDB will be excluded."])
+#AC_CHECK_LIB([db], [db_create], [], [echo "Berkeley Database library not found.  Support for BDB will be excluded."])
 AC_CHECK_LIB([rt], [main], [], [echo "rt library not found."])
 
 CXXFLAGS="$CXXFLAGS $THRIFT_CFLAGS"
@@ -90,13 +90,13 @@ AC_TYPE_SIGNAL
 AC_CHECK_FUNCS([bzero ftruncate gethostbyname getpagesize gettimeofday inet_ntoa memchr memmove memset munmap select socket strdup strerror strtol strtoul strtoull])
 
 CFLAGS="$CFLAGS -Wall -Wextra"
-CXXFLAGS="$CXXFLAGS -Wall -Wextra -Wno-unused-parameter -Wno-unused-variable -I/afs/andrew.cmu.edu/usr2/pthepdus/libs/include/  -lgtest -lthrift"
-LDFLAGS="-L/afs/andrew.cmu.edu/usr2/pthepdus/gtest/lib/ -L/afs/andrew.cmu.edu/usr2/pthepdus/libs/lib -L/afs/andrew.cmu.edu/usr2/pthepdus/libs/include -ltbb -L/afs/andrew.cmu.edu/usr2/pthepdus/libs/bin/"
+CXXFLAGS="$CXXFLAGS -Wall -Wextra -Wno-unused-parameter -Wno-unused-variable -I/afs/ece/usr/pthepdus/local/include -lgtest -lthrift"
+LDFLAGS="-L/afs/ece/usr/pthepdus/local/lib -L/afs/ece/usr/pthepdus/local/lib64 -L/afs/ece/usr/pthepdus/local/include -ltbb -lgsl -lgslcblas -lxerces-c"
 AC_CONFIG_FILES([ Makefile
-		  fawnds/Makefile
 		  utils/Makefile
+		  fawnds/Makefile
+		  fawnkv/Makefile
 		  siltds/Makefile
-      fawnkv/Makefile
 		  lib/Makefile
 		  lib/cpp/Makefile
 		  lib/rb/Makefile
@@ -104,7 +104,7 @@ AC_CONFIG_FILES([ Makefile
 		  test/Makefile
 		  test/fawnds/Makefile
 		  test/management/Makefile
-      test/siltds/Makefile
+      		  test/siltds/Makefile
     ])
 
 AC_OUTPUT
