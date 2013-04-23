@@ -5,9 +5,9 @@ function generate_load_raw {
     # $2 = (UNUSED)
     # $3 = arguments to YCSB
 
-    echo generating $1.load.raw
+    echo YCSB load generating $1.load.raw
 
-    java -cp ${YCSB_DIR}/build/ycsb.jar com.yahoo.ycsb.Client -load -db com.yahoo.ycsb.BasicDB $3 -s > $1.load.raw
+    ${YCSB_DIR}/bin/ycsb load basic $3 -s > $1.load.raw
 }
 
 function generate_load {
@@ -15,9 +15,9 @@ function generate_load {
     # $2 = arguments to preprocessTrace
     # $3 = arguments to YCSB
 
-    echo generating $1.load
+    echo YCSB load generating $1.load
 
-    java -cp ${YCSB_DIR}/build/ycsb.jar com.yahoo.ycsb.Client -load -db com.yahoo.ycsb.BasicDB $3 -s | ../preprocessTrace $2 $1.load
+    ${YCSB_DIR}/bin/ycsb load basic $3 -s | ../preprocessTrace $2 $1.load
 }
 
 function generate_trans {
@@ -25,15 +25,15 @@ function generate_trans {
     # $2 = arguments to preprocessTrace
     # $3 = arguments to YCSB
 
-    echo generating $1.trans
+    echo YCSB run generating $1.trans
 
-    java -cp ${YCSB_DIR}/build/ycsb.jar com.yahoo.ycsb.Client -t -db com.yahoo.ycsb.BasicDB $3 -s | ../preprocessTrace $2 $1.trans
+    ${YCSB_DIR}/bin/ycsb run basic $3 -s | ../preprocessTrace $2 $1.trans
 }
 
 if [ $# -ne 1 ] 
 then 
     echo "Usage: $0 [path-to-YSCB]"
-    echo "	e.g. $0 /Users/binfan/projects/fawn/YCSB"
+    echo "  e.g. $0 /Users/binfan/projects/fawn/YCSB"
     exit 1
 fi
 
