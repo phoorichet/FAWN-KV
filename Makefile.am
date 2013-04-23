@@ -1,6 +1,6 @@
 ACLOCAL_AMFLAGS=-I m4
 
-SUBDIRS = utils fawnds fawnkv lib test
+SUBDIRS = utils fawnds siltds fawnkv lib test
 CLEANFILES = core *.core *~
 DISTCLEANFILES = autom4te*.cache config.status config.log
 MAINTAINERCLEANFILES = aclocal.m4 install-sh mkinstalldirs \

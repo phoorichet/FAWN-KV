@@ -1,6 +1,6 @@
 /* -*- Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
-#ifndef _FAWNDS_H_
-#define _FAWNDS_H_
+#ifndef _FAWNDS_SILT_H_
+#define _FAWNDS_SILT_H_
 
 #include "basic_types.h"
 #include "fawnds_types.h"

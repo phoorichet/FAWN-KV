@@ -95,7 +95,8 @@ CXXFLAGS="$CXXFLAGS -Wall -Wextra -Wno-unused-parameter -Wno-unused-variable -Wl
 AC_CONFIG_FILES([ Makefile
 		  utils/Makefile
 		  fawnds/Makefile
-		  fawnkv/Makefile
+		  siltds/Makefile
+      fawnkv/Makefile
 		  lib/Makefile
 		  lib/cpp/Makefile
 		  lib/rb/Makefile
@@ -103,7 +104,6 @@ AC_CONFIG_FILES([ Makefile
 		  test/Makefile
 		  test/fawnds/Makefile
 		  test/management/Makefile
-      siltds/Makefile
       test/siltds/Makefile
     ])
 

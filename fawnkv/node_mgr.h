@@ -29,6 +29,8 @@
 #include "FawnKVFrontend.h"
 #include "FawnKVManager.h"
 #include "ring.h"
+#include "../siltds/fawnds_factory.h"
+#include "../siltds/configuration.h"
 
 using namespace fawn;
 using namespace tbb;
@@ -59,8 +61,9 @@ void *localGetResponseThreadLoop(void *p);
 
 // You need this lock to protect access to 'h'
 typedef struct interval_database {
-    FawnDS<FawnDS_Flash>* h;
-    FawnDS<FawnDS_Flash>* tempDS;
+    silt::FawnDS* siltds;
+    fawn::FawnDS<FawnDS_Flash>* h;
+    fawn::FawnDS<FawnDS_Flash>* tempDS;
     string name;
 
     deque< pair< uint32_t,pair<string,string> > > seq_msg_queue; // seq -> <key, value>
@@ -216,6 +219,7 @@ public:
     string myIP;
     int myPort;
     string filebase;
+  string xmlfile;
     uint32_t num_precopies;
     bool unknown_ids;
     atomic<uint32_t> num_network;
@@ -248,7 +252,7 @@ public:
     void create_interval_file(const string ps_endid, const string ps_startid, const string my_vid = "");
 
     interval_db* init_interval_db(const string endid, const string my_vid, const string startid = "");
-    FawnDS<FawnDS_Flash>* createTempStore(const string& startid_str, const string& endid_str, const string& prefix_str);
+    fawn::FawnDS<FawnDS_Flash>* createTempStore(const string& startid_str, const string& endid_str, const string& prefix_str);
     void insertIntervalFile(interval_db* i);
     void removeIntervalFile(interval_db* i);
 

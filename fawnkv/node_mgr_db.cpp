@@ -4,6 +4,7 @@
 #include "dbid.h"
 #include "print.h"
 
+
 //#define NUM_RECORD_INIT 81943040
 #define NUM_RECORD_INIT 4194304
 #define NUM_RECORD_INIT_TEMP 4194304/100
@@ -101,10 +102,22 @@ interval_db* node_mgr::init_interval_db(const string endid, const string my_vid,
         DBID d_startid(startid);
         i->h->setStartID(d_startid);
         i->h->setEndID(d_endid);
+      
+      cout << "Creating db from xml file: " << xmlfile << endl;
+      silt::Configuration* config = new silt::Configuration(xmlfile);
+      i->siltds = silt::FawnDS_Factory::New(config);
+      i->siltds->Create();
+      
     } else {
         cout << "[init_interval_db] startid isnt set" << endl;
         cout << "Opening file: " << filename << endl;
         i->h = fawn::FawnDS<FawnDS_Flash>::Open_FawnDS(filename.c_str(), TEXT_KEYS);
+      
+      cout << "Opening db from xml file: " << xmlfile << endl;
+      silt::Configuration* config = new silt::Configuration(xmlfile);
+      i->siltds = silt::FawnDS_Factory::New(config);
+      i->siltds->Open();
+      
     }
     i->valid = true;
     i->tempDS = NULL;
@@ -129,7 +142,7 @@ interval_db* node_mgr::init_interval_db(const string endid, const string my_vid,
 // After full join, lookups will require first checking the temporarily interval version
 // and if not found, the original to ensure the latest versions are retrieved.
 
-FawnDS<FawnDS_Flash>* node_mgr::createTempStore(const string& startid_str, const string& endid_str,
+fawn::FawnDS<FawnDS_Flash>* node_mgr::createTempStore(const string& startid_str, const string& endid_str,
                                   const string& prefix_str)
 {
     DBID p_endid(endid_str);
@@ -139,7 +152,7 @@ FawnDS<FawnDS_Flash>* node_mgr::createTempStore(const string& startid_str, const
     if (filename.size() > 255)
         filename.resize(255);
     cout << "Creating temporary file: " << filename << endl;
-    FawnDS<FawnDS_Flash>* tempDS = fawn::FawnDS<FawnDS_Flash>::Create_FawnDS(filename.c_str(),
+    fawn::FawnDS<FawnDS_Flash>* tempDS = fawn::FawnDS<FawnDS_Flash>::Create_FawnDS(filename.c_str(),
                                                  NUM_RECORD_INIT_TEMP,
                                                  0.9,
                                                  0.8,
@@ -298,7 +311,7 @@ void node_mgr::handle_split(const string& key) {
     // Does not lock the db.
     interval_db* db = findIntervalDb(&key, NOLOCK);
     if (db != NULL) {
-        FawnDS<FawnDS_Flash>* h = db->h;
+        fawn::FawnDS<FawnDS_Flash>* h = db->h;
         // Insert new interval file at the end of list
         // Current DB will always be found until we change its range.
         // Don't need lock on h to read startID because no one else should be splitting this range.

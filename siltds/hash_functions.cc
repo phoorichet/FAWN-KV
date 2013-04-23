@@ -1,6 +1,6 @@
 /* -*- Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 #include "hash_functions.h"
-#include "hashutil.h"
+#include "hashutilSilt.h"
 
 namespace silt {
 

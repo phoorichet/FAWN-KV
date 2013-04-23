@@ -3,7 +3,7 @@
 
 #define MAXLEN 1024
 enum QUERY_TYPE{
-    PUT=0,
+    PPUT=0,
     GET,
     DELETE,
 };

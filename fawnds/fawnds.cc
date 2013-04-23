@@ -409,6 +409,7 @@ namespace fawn {
     template <typename T>
     bool FawnDS<T>::Insert(const char* key, uint32_t key_len, const char* data, uint32_t length)
     {
+      
         if (key == NULL || data == NULL)
             return false;
 
@@ -432,6 +433,8 @@ namespace fawn {
             return false;
         }
 
+        cout << " >>> Inserted Key: " << bytes_to_hex(key) << "val: " << data << endl;
+      
         // update the hashtable (since the data was successfully written).
         uint16_t key_in_hashtable = keyfragment_from_key(key, key_len);
         key_in_hashtable |= VALIDBITMASK; // set valid bit to 1

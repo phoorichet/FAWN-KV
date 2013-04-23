@@ -24,6 +24,7 @@ string* hex_string_to_bytes(const u_char* hex_num, u_int len);
 void print_hex_ascii_line(const u_char *payload, u_int len, u_int offset);
 void print_payload(const u_char *payload, u_int len);
 void print_payload(const string &str);
+void print_payload(const u_char *payload, u_int len, int indent);
 void tokenize(const string& str, vector<string>& tokens, const string& delimiters);
 
 void int_to_byte(const uint32_t i, char* p_byte_value);

@@ -19,15 +19,16 @@ static std::string conf_file = "testConfigs/testCuckoo.xml";
 
 void do_test(void){
   // Create a hash store
-//  	Configuration* config = new Configuration(conf_file);
-//  FawnDS *h =  FawnDS_Factory(new Configuration(conf_file));
+ 	Configuration* config = new Configuration(conf_file);
+ FawnDS *h =  FawnDS_Factory::New(config);
+
 //  cout << "test" << endl;
-//  if (h->Create() == OK){
-//    
-//  }
+ if (h->Create() == OK){
+   
+ }
   
   // Clean up
-//  delete h;
+ delete h;
 }
 
 int main(int argc, char ** argvs){

@@ -177,6 +177,28 @@ void print_payload(const u_char *payload, u_int len)
     return;
 }
 
+void print_payload(const u_char *payload, u_int len, int indent)
+{
+    const u_int line_width = 16;    /* number of bytes per line */
+    u_int len_rem = len;
+    u_int offset = 0;
+
+    while (len_rem > line_width) {
+        int line_len = line_width % len_rem;
+        fprintf(stderr, "%*s", indent, "");
+        print_hex_ascii_line(payload + offset, line_len, offset);
+        len_rem -= line_len;
+        offset += line_width;
+    }
+
+    /* Might have left a partial line left. */
+    if (len_rem > 0) {
+        fprintf(stderr, "%*s", indent, "");
+        print_hex_ascii_line(payload + offset, len_rem, offset);
+    }
+
+    return;
+}
 
 
 void tokenize(const string& str,
@@ -208,6 +230,17 @@ void int_to_byte(const uint32_t i, char* p_byte_value)
         cout << "b[" << x << "] = " << hex << uppercase << setw(2) << setfill('0') <<(int)p_byte_value[x] << endl;
     }
 }
+
+void int_to_bit (const uint32_t i, int w )
+{
+    uint32_t z;
+    string b="";
+    for (z = 1 << (w-1); z > 0; z >>= 1)
+    {
+        b = (((i & z) == z) ? "1" : "0") + b;
+    }
+    cout << "bit[0.."<< w-1 << "]=" << b << endl;
+} 
 
 int fill_file_with_zeros(int fd, size_t nbytes)
 {

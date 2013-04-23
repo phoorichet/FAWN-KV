@@ -2,7 +2,7 @@
 
 #include "hash_table_default.h"
 #include "hash_functions.h"
-#include "hashutil.h"
+#include "hashutilSilt.h"
 #include "configuration.h"
 #include "print.h"
 #include "file_io.h"

@@ -458,7 +458,8 @@ void usage()
          <<   "   -t [#]     # of threads to spawn for concurrent I/O operations \n"
          <<   "   -j         static join without knowing your IDs.\n"
          <<   "   -o         overwrite existing DS if it already exists.\n"
-         <<   "   -s [name]  stat file name \n";
+         <<   "   -s [name]  stat file name \n"
+         <<   "   -x xmlfile configuration file for silt e.g. combi.xml \n";
 
     cerr <<   "Example: ./backend -m 128.2.223.35 -i 128.2.223.35 -b \"/localfs/fawndb_ /localfs2/fawndb_\" -o" << endl;
 }
@@ -477,6 +478,7 @@ int main(int argc, char **argv)
     string stat_filename;
     // default
     string filebase("/localfs/fawnds_");
+  string xmlfile("config.xml");
 
     int numConsumerThreads = 1;
     bool unknown_ids = false;
@@ -488,7 +490,7 @@ int main(int argc, char **argv)
     bool static_init = false;
     bool sendJoinMsg = true;
 
-    while ((ch = getopt(argc, argv, "hm:i:p:v:s:b:t:n:jro")) != -1) {
+    while ((ch = getopt(argc, argv, "hm:i:p:v:s:b:x:t:n:jro")) != -1) {
         switch (ch) {
         case 'm':
             managerIP = optarg;
@@ -561,6 +563,9 @@ int main(int argc, char **argv)
         case 'b':
             filebase = optarg;
             break;
+        case 'x':
+            xmlfile = optarg;
+            break;
         case 'o':
             overwriteExistingDS = true;
             break;
@@ -593,6 +598,7 @@ int main(int argc, char **argv)
     nm->numThreads = numConsumerThreads;
     nm->myPort = port;
     nm->filebase = filebase;
+  nm->xmlfile = xmlfile;
 
     pthread_t localServerThreadId_;
     int code = pthread_create(&localServerThreadId_, NULL,
@@ -728,8 +734,8 @@ void *splitThread(void* p) {
 
 void *rewriteThread(void* p) {
     interval_db *idb = (interval_db*)p;
-    FawnDS<FawnDS_Flash>* h = idb->h;
-    FawnDS<FawnDS_Flash>* h_new = h->Rewrite(&(idb->dbLock));
+    fawn::FawnDS<FawnDS_Flash>* h = idb->h;
+    fawn::FawnDS<FawnDS_Flash>* h_new = h->Rewrite(&(idb->dbLock));
     assert(h_new != NULL);
     idb->h = h_new; // pointer swap
     pthread_rwlock_unlock(&(idb->dbLock));

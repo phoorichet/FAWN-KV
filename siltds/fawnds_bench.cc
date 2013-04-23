@@ -13,8 +13,8 @@
 #include <sys/time.h>
 #include <time.h>
 #include "print.h"
-#include "dbid.h"
-#include "hashutil.h"
+#include "dbidSilt.h"
+#include "hashutilSilt.h"
 #include "timing.h"
 
 enum { SCAN_RANDOM, SCAN_SEQUENTIAL };

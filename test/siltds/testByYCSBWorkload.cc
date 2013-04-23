@@ -10,8 +10,11 @@
 #include "rate_limiter.h"
 #include "global_limits.h"
 #include "datastat.h"
+#include "print.h"
 
 #include "preprocessTrace.h"
+
+#include "fe.h"
 
 using namespace std;
 using namespace tbb;
@@ -27,6 +30,7 @@ double successful_get_ratio = 1.;
 
 FawnDS *h;
 size_t val_len;
+FrontEnd *fe;
 
 RateLimiter *rate_limiter;
 
@@ -83,6 +87,7 @@ void *query_sender(void * id) {
     struct timespec ts;
     double last_time_, current_time_, latency;
     printf("starting thread: query_sender%ld!\n", t);
+//    string value_b(val_len, 'b');
     while (1) {
 
         pthread_mutex_lock(&query_lock);
@@ -95,7 +100,7 @@ void *query_sender(void * id) {
             pthread_mutex_unlock(&query_lock);
 
             rate_limiter->remove_tokens(1);
-            if (q.tp == PUT) {
+            if (q.tp == PPUT) {
                 uint64_t r = (static_cast<uint64_t>(rand_r(&data_seed)) << 32) | static_cast<uint64_t>(rand_r(&data_seed));
                 uint64_t* p = reinterpret_cast<uint64_t*>(val);
                 const uint64_t* p_end = p + (val_len / sizeof(uint64_t));
@@ -104,13 +109,23 @@ void *query_sender(void * id) {
 
                 clock_gettime(CLOCK_MONOTONIC_RAW, &ts);
                 last_time_ = static_cast<int64_t>(ts.tv_sec) * 1000000000Lu + static_cast<int64_t>(ts.tv_nsec);
-                ret = h->Put(ConstRefValue(q.hashed_key, 20), 
-                             ConstRefValue(val, val_len));         
-                if (ret != OK) {
-                    printf("error! h->Put() return value=%d, expected=%d, operation%llu\n", 
-                           ret, OK, static_cast<unsigned long long>(cur));
-                    //exit(1);
-                }
+
+//                cout << "Key: " <<  bytes_to_hex(string(ConstRefValue(q.hashed_key, 20).data(), 20))
+//                     << " value:" << bytes_to_hex(string(ConstRefValue(val, val_len).data(), val_len))
+//                     << endl;
+              
+//                ret = h->Put(ConstRefValue(q.hashed_key, 20), 
+//                             ConstRefValue(val, val_len));
+
+                fe->put(string(ConstRefValue(q.hashed_key, 20).data(), 20),\
+                        string(ConstRefValue(val, val_len).data(), val_len),\
+                               (int16_t)cur);
+              
+//              if (ret != OK) {
+//                    printf("error! h->Put() return value=%d, expected=%d, operation%llu\n", 
+//                           ret, OK, static_cast<unsigned long long>(cur));
+//                    //exit(1);
+//                }
                 clock_gettime(CLOCK_MONOTONIC_RAW, &ts);
                 current_time_ = static_cast<int64_t>(ts.tv_sec) * 1000000000Lu + static_cast<int64_t>(ts.tv_nsec);
                 latency = current_time_ - last_time_;
@@ -135,12 +150,14 @@ void *query_sender(void * id) {
                 SizedValue<MAXLEN> read_data;
                 clock_gettime(CLOCK_MONOTONIC_RAW, &ts);
                 last_time_ = static_cast<int64_t>(ts.tv_sec) * 1000000000Lu + static_cast<int64_t>(ts.tv_nsec);                
-                ret = h->Get(ConstRefValue(q.hashed_key, 20), read_data);
-                if (ret != expected_ret) {
-                    printf("error! h->Get() return value=%d, expected=%d, operation%llu\n", 
-                           ret, expected_ret, static_cast<unsigned long long>(cur));
-                    //exit(1);
-                }
+//                ret = h->Get(ConstRefValue(q.hashed_key, 20), read_data);
+              
+              fe->get(string(ConstRefValue(q.hashed_key, 20).data(), 20), (int16_t)cur);
+//                if (ret != expected_ret) {
+//                    printf("error! h->Get() return value=%d, expected=%d, operation%llu\n", 
+//                           ret, expected_ret, static_cast<unsigned long long>(cur));
+//                    //exit(1);
+//                }
 
                 clock_gettime(CLOCK_MONOTONIC_RAW, &ts);
                 current_time_ = static_cast<int64_t>(ts.tv_sec) * 1000000000Lu + static_cast<int64_t>(ts.tv_nsec);                
@@ -231,7 +248,8 @@ void replay(string recfile) {
     delete latency_put;
     delete latency_get;
 
-    h->Flush();
+//    h->Flush();
+    cout << "sleeping for 15 seconds..." << endl;
     sleep(10);  // these sleep() gives time for FawnDS_Monitor to print status messages after the store reaches a steady state
     sync();
     sleep(5);
@@ -239,7 +257,9 @@ void replay(string recfile) {
 
 
 void usage() {
-    cout << "usage: testByYCSBWorkload conf_file load_workload_name trans_workload_name [-t num_threads] [-r max_ops_per_sec] [-c convert_rate] [-m merge_rate] [-s successful_get_ratio]" << endl 
+    cout << "usage: testByYCSBWorkload conf_file load_workload_name trans_workload_name"
+         << " <managerIP> <My IP> <My Port> "
+         <<" [-t num_threads] [-r max_ops_per_sec] [-c convert_rate] [-m merge_rate] [-s successful_get_ratio]" << endl
          << "e.g. ./testByYCSBWorkload testConfigs/bdb.xml testWorkloads/update_only" << endl;
 
 }
@@ -262,7 +282,7 @@ int main(int argc, char **argv) {
     argc -= optind;
     argv += optind;
 
-    if (argc < 3) {
+    if (argc < 6) {
         usage();
         exit(-1);
     }
@@ -276,6 +296,10 @@ int main(int argc, char **argv) {
     string conf_file = string(argv[0]);
     string load_workload = string(argv[1]);
     string trans_workload = string(argv[2]);
+  
+    string managerIP(argv[3]);
+    string myIP(argv[4]);
+    int myPort = atoi(argv[5]);
 
     // clean dirty pages to reduce anomalies
     sync();
@@ -284,9 +308,10 @@ int main(int argc, char **argv) {
     GlobalLimits::instance().set_merge_rate(merge_rate);
 
     // prepare FAWNDS
-    h = FawnDS_Factory::New(conf_file); // test_num_records_
-    if (h->Create() != OK) {
-        cout << "cannot create FAWNDS!" << endl;
+//    h = FawnDS_Factory::New(conf_file); // test_num_records_
+    fe = new FrontEnd(managerIP, myIP, myPort);
+    if (fe == NULL) {
+        cout << "cannot create Frontend!" << endl;
         exit(0);
     }
 
@@ -309,6 +334,7 @@ int main(int argc, char **argv) {
 
     delete rate_limiter;
 
-    h->Close();
-    delete h;
+    delete fe;
+//    h->Close();
+//    delete h;
 }

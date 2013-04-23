@@ -15,6 +15,8 @@
 #include "bdb.h"
 #include "debug.h"
 
+using namespace silt;
+
 namespace silt {
 
     FawnDS*

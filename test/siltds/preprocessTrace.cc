@@ -47,13 +47,13 @@ int main(int argc, char **argv) {
         */
 
         if (sscanf(tmp, "INSERT usertable %s [ field", key)){
-            q.tp = PUT;
+            q.tp = PPUT;
             sha1(q.hashed_key, key, strlen(key));
             //const char *pos = index(tmp, '=');
             //strncpy(val, pos + 1, val_len);
             //val[val_len] = 0;
         } else if (sscanf(tmp, "UPDATE usertable %s [ field", key)) { 
-            q.tp = PUT;
+            q.tp = PPUT;
             sha1(q.hashed_key, key, strlen(key));
             //const char *pos = index(tmp, '=');
             //strncpy(val, pos + 1, val_len);
@@ -65,7 +65,7 @@ int main(int argc, char **argv) {
         } else 
             continue;
 
-        if (q.tp == PUT) {
+        if (q.tp == PPUT) {
             fwrite(&q, sizeof(Query), 1, fp);
             //fwrite(val, sizeof(char), val_len, fp); 
         } else if (q.tp == GET) {

@@ -77,11 +77,16 @@ testByYCSBWorkload_SOURCES= testByYCSBWorkload.cc
 testByYCSBWorkload_CPPFLAGS = 			\
 	-I$(top_srcdir)/utils 			\
 	-I$(top_srcdir)/fawnds			\
+	-I$(top_srcdir)/fawnkv 			\
+	-I$(top_builddir)/fawnkv/gen-cpp 		\
+	-I$(top_builddir)/fawnkv			\
+	-I$(top_builddir)/fawnds		\
 	-I$(top_builddir)/siltds		\
-	-I$(top_builddir)/siltds/gen-cpp
+	-I$(top_builddir)/siltds/gen-cpp 
 
 testByYCSBWorkload_LDADD = 				\
 	$(top_builddir)/siltds/libfawnds.la 	\
+	$(top_builddir)/fawnkv/libfawnkv.la 	\
 	$(top_builddir)/utils/libfawnkvutils.la \
 	$(THRIFT_LIBS)
 

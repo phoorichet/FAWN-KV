@@ -7,7 +7,8 @@ ringtester_CPPFLAGS = 				\
 	-I$(top_builddir)/fawnkv/gen-cpp 		\
 	-I$(top_srcdir)/fawnds			\
 	-I$(top_builddir)/fawnkv 		\
-	-I$(top_builddir)/fawnds
+	-I$(top_builddir)/fawnds		\
+	-I$(top_builddir)/siltds
 
 ringtester_LDADD = 				\
 	$(top_builddir)/fawnkv/libfawnkv.la	\
@@ -21,7 +22,8 @@ lattester_CPPFLAGS = 				\
 	-I$(top_builddir)/fawnkv/gen-cpp 		\
 	-I$(top_srcdir)/fawnds			\
 	-I$(top_builddir)/fawnkv 		\
-	-I$(top_builddir)/fawnds
+	-I$(top_builddir)/fawnds		\
+	-I$(top_builddir)/siltds
 
 lattester_LDADD = 				\
 	$(top_builddir)/fawnkv/libfawnkv.la	\

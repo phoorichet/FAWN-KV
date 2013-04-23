@@ -130,7 +130,7 @@ void maintenance_test(FrontEnd *fe, int msg_size)
     
     cout << "Sending a put" << key << " -> "<< value << " num=" << num << endl;
     // Send a Put
-//    fe->put(key, value, num);
+    fe->put(key, value, num);
     nanosleep(&req, NULL);
     //cout << "Getting ..." << endl;
     //ring.get(key, 2);

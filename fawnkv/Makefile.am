@@ -79,12 +79,15 @@ backend_CPPFLAGS = -I$(top_srcdir)/utils        \
 		   -I$(top_srcdir)/fawnds	\
 		   -I$(top_builddir)/fawnds	\
 		   -I$(srcdir)			\
-		   -I$(builddir)/gen-cpp
+		   -I$(builddir)/gen-cpp    \
+		   -I$(top_builddir)/siltds/gen-cpp 		\
+		   -I$(top_builddir)/siltds
 
 backend_SOURCES = node_mgr_db.cpp node_mgr.cpp node_mgr.h FawnKVBackendHandler.cpp
 
 backend_LDADD = 				\
     $(top_builddir)/fawnds/libfawnds.la 	\
+    $(top_builddir)/siltds/libfawnds.la 	\
     $(top_builddir)/utils/libfawnkvutils.la	\
     libfawnkv.la				\
     $(THRIFT_LIBS)

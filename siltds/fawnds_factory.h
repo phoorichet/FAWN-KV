@@ -5,17 +5,20 @@
 //using silt::DataHeader;
 //using silt::HashUtil;
 
-//using namespace std;
+// using namespace std;
 
 #include "configuration.h"
 #include "fawnds.h"
 
+// using namespace silt;
+
 namespace silt {
+    // class FawnDS;
 
     class FawnDS_Factory {
     public:
-        static FawnDS* New(std::string config_file);
-        static FawnDS* New(const Configuration* config);
+        static silt::FawnDS* New(std::string config_file);
+        static silt::FawnDS* New(const silt::Configuration* config);
     };
 
 } // namespace silt
