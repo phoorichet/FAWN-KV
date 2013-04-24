@@ -119,7 +119,7 @@ void *query_sender(void * id) {
 
                 fe->put(string(ConstRefValue(q.hashed_key, 20).data(), 20),\
                         string(ConstRefValue(val, val_len).data(), val_len),\
-                               (int16_t)cur);
+                               cur);
               
 //              if (ret != OK) {
 //                    printf("error! h->Put() return value=%d, expected=%d, operation%llu\n", 
