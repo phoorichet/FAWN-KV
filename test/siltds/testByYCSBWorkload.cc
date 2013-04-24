@@ -28,9 +28,12 @@ int64_t convert_rate = 1000000000L;
 int64_t merge_rate = 1000000000L;
 double successful_get_ratio = 1.;
 
+string managerIP;
+string myIP;
+int myPort;
+
 FawnDS *h;
 size_t val_len;
-FrontEnd *fe;
 
 RateLimiter *rate_limiter;
 
@@ -87,6 +90,12 @@ void *query_sender(void * id) {
     struct timespec ts;
     double last_time_, current_time_, latency;
     printf("starting thread: query_sender%ld!\n", t);
+
+    FrontEnd *fe = new FrontEnd(managerIP, myIP, myPort);
+    if (fe == NULL) {
+        cout << "cannot create Frontend!" << endl;
+        pthread_exit(NULL);
+    }
 //    string value_b(val_len, 'b');
     while (1) {
 
@@ -187,6 +196,7 @@ void *query_sender(void * id) {
         }
     } /* end of while (done) */
     printf("killing thread: query_sender%ld!\n", t);
+    delete fe;
     pthread_exit(NULL);
 } /* end of query_sender */
 
@@ -297,9 +307,10 @@ int main(int argc, char **argv) {
     string load_workload = string(argv[1]);
     string trans_workload = string(argv[2]);
   
-    string managerIP(argv[3]);
-    string myIP(argv[4]);
-    int myPort = atoi(argv[5]);
+    // Add for FAWNKV
+    managerIP = argv[3];
+    myIP =argv[4];
+    myPort = atoi(argv[5]);
 
     // clean dirty pages to reduce anomalies
     sync();
@@ -309,11 +320,7 @@ int main(int argc, char **argv) {
 
     // prepare FAWNDS
 //    h = FawnDS_Factory::New(conf_file); // test_num_records_
-    fe = new FrontEnd(managerIP, myIP, myPort);
-    if (fe == NULL) {
-        cout << "cannot create Frontend!" << endl;
-        exit(0);
-    }
+
 
     rate_limiter = new RateLimiter(0, 1000000000L, 1, 1);   // virtually unlimted
     GlobalLimits::instance().disable();
@@ -334,7 +341,6 @@ int main(int argc, char **argv) {
 
     delete rate_limiter;
 
-    delete fe;
 //    h->Close();
 //    delete h;
 }
