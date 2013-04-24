@@ -16,7 +16,7 @@
 	<data-len>1000</data-len>
 
 	<!-- just for test program -->
-	<size>1000000</size>
+	<size>2000000</size>
 
 	<store0>
 		<type>sf</type>
