@@ -91,7 +91,7 @@ void *query_sender(void * id) {
     double last_time_, current_time_, latency;
     printf("starting thread: query_sender%ld!\n", t);
 
-    FrontEnd *fe = new FrontEnd(managerIP, myIP, myPort);
+    FrontEnd *fe = new FrontEnd(managerIP, myIP, myPort + (int) t);
     if (fe == NULL) {
         cout << "cannot create Frontend!" << endl;
         pthread_exit(NULL);
@@ -126,9 +126,7 @@ void *query_sender(void * id) {
 //                ret = h->Put(ConstRefValue(q.hashed_key, 20), 
 //                             ConstRefValue(val, val_len));
 
-                fe->put(string(ConstRefValue(q.hashed_key, 20).data(), 20),\
-                        string(ConstRefValue(val, val_len).data(), val_len),\
-                               cur);
+                fe->put(string(q.hashed_key, 20), string(val, val_len), cur);
               
 //              if (ret != OK) {
 //                    printf("error! h->Put() return value=%d, expected=%d, operation%llu\n", 
@@ -161,7 +159,7 @@ void *query_sender(void * id) {
                 last_time_ = static_cast<int64_t>(ts.tv_sec) * 1000000000Lu + static_cast<int64_t>(ts.tv_nsec);                
 //                ret = h->Get(ConstRefValue(q.hashed_key, 20), read_data);
               
-              fe->get(string(ConstRefValue(q.hashed_key, 20).data(), 20), (int16_t)cur);
+              fe->get(string(q.hashed_key, 20), cur);
 //                if (ret != expected_ret) {
 //                    printf("error! h->Get() return value=%d, expected=%d, operation%llu\n", 
 //                           ret, expected_ret, static_cast<unsigned long long>(cur));
