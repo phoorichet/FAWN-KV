@@ -22,7 +22,7 @@ using namespace std;
  **/
 
 namespace fawn {
-    const unsigned int DBID_LENGTH = 1024;
+    const unsigned int DBID_LENGTH = 20;
 
     class DBID
     {
