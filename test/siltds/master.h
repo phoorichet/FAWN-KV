@@ -4,12 +4,14 @@
 #include <iostream>
 #include "fawnds_types.h"
 #include "value.h"
+#include "dbid.h"
 
 /* About thread */
 #define THREAD_POOL_SIZE 10
 #define SBUFSIZE 500
 
 using namespace std;
+using namespace fawn;
 
 typedef struct {
     int *buf;          /* Buffer array */
@@ -37,9 +39,9 @@ sbuf_t sbuf; /* Shared buffer of connected descriptors */
 
 struct cacheobject_t {
     struct cacheobject_t *prev, *next;
-    size_t size;
-    char *uri;
-    void *data;
+    char *nodeid;
+    DBID *dbid;
+    int siltfd;
 };
 typedef struct cacheobject_t CacheObject;
 
@@ -61,6 +63,8 @@ void print_cache();
 
 #define PORT 4647
 #define HTTP_PORT 80
+
+#define MAX_KEY_LENGTH 20
 
 
 namespace silt {

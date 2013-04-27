@@ -6,6 +6,7 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <semaphore.h>
+#include <assert.h>  
 
 #include "master.h"
 #include "fawnds_factory.h"
@@ -14,7 +15,9 @@
 #include "csapp.h"
 
 
+
 using namespace std;
+using namespace fawn;
 
 /************************** 
  * Error-handling functions
@@ -331,11 +334,10 @@ void cache_init() {
   cache.head = cache.tail = NULL;
   cache.size = 0;
   cache.readcnt = 0;
-  cache.siltfd = 0;
 }
 
-CacheObject *cache_get(char *uri) {
-    printf("[Thread %u] :cache_get: sem_wait(&cache.mutex)\n", (unsigned int)pthread_self());
+CacheObject *cache_get(char *key) {
+  printf("[Thread %u] :cache_get: sem_wait(&cache.mutex)\n", (unsigned int)pthread_self());
   sem_wait(&cache.mutex);
   cache.readcnt++;
   if (cache.readcnt == 1) {
@@ -347,56 +349,25 @@ CacheObject *cache_get(char *uri) {
   sem_post(&cache.mutex);
 
   CacheObject *ptr = cache.head;
-  printf("~~~~~~~ Looking for uri = %s\n", uri);
+  printf("~~~~~~~ Looking for key = %s\n", key);
   while (ptr != NULL) {
-    // printf("\tLooking cache uri = %s..\n", ptr->uri);
-    /* Look for a cache object with the same uri.
-      When found, move this object to the tail.
-      Then return this object. */
-    if (!strcasecmp(uri, ptr->uri)) {
+    printf("\tLooking cache key = %s..\n", ptr->nodeid);
 
-      sem_wait(&cache.mutex);
-      /* Rearrange prev/next pointers */
-      if (ptr->prev != NULL)
-        ptr->prev->next = ptr->next;
-      else 
-        cache.head = ptr->next;
-
-      if (ptr->next != NULL)
-        ptr->next->prev = ptr->prev;
-
-      /* No tail pointer update if the object is the tail itself */
-      if (cache.tail != ptr) {
-        (cache.tail)->next = ptr;
-        ptr->prev = cache.tail;
-        ptr->next = NULL;
-        cache.tail = ptr;
+    /* Compare the two nodes, if key is in range, insert it between */
+    if ((ptr->next != NULL) && (ptr->prev != NULL)){ /* 2 node exist */
+      DBID *nextdbid, *prevdbid;
+      nextdbid = ptr->next->dbid;
+      prevdbid = ptr->prev->dbid;
+      if (between(prevdbid, nextdbid, ptr->dbid)){
+        printf(">>>>> found dbid between %s\n", ptr->dbid->actual_data());
       }
-      sem_post(&cache.mutex);
-
-      print_cache();
-
-      printf("... CACHE HIT! :)\n");
-      printf("[Thread %u] :cache_get: sem_wait(&cache.mutex)\n", (unsigned int)pthread_self());
-      sem_wait(&cache.mutex); /* Lock mutex */
-      cache.readcnt--;
-      if (cache.readcnt == 0) {
-          printf("[Thread %u] :cache_get: sem_post(&cache.w)\n", (unsigned int)pthread_self());
-        sem_post(&cache.w);
-      }
-      printf("[Thread %u] :cache_get: readcnt = %d\n", (unsigned int)pthread_self(), cache.readcnt);
-      sem_post(&cache.mutex); /* Unlock mutex */
-        printf("[Thread %u] :cache_get: sem_post(&cache.mutex)\n", (unsigned int)pthread_self());
-
-      /* Return this object */
-      return ptr;
     }
 
     ptr = ptr->next;
   }
   printf("... cache missed :(\n");
 
-    printf("[Thread %u] :cache_get: sem_wait(&cache.mutex)\n", (unsigned int)pthread_self());
+  printf("[Thread %u] :cache_get: sem_wait(&cache.mutex)\n", (unsigned int)pthread_self());
   sem_wait(&cache.mutex); /* Lock mutex */
   cache.readcnt--;
   if (cache.readcnt == 0) {
@@ -405,55 +376,92 @@ CacheObject *cache_get(char *uri) {
   }
   printf("[Thread %u] :cache_get: readcnt = %d\n", (unsigned int)pthread_self(), cache.readcnt);
   sem_post(&cache.mutex); /* Unlock mutex */
-    printf("[Thread %u] :cache_get: sem_post(&cache.mutex)\n", (unsigned int)pthread_self());
+  printf("[Thread %u] :cache_get: sem_post(&cache.mutex)\n", (unsigned int)pthread_self());
 
   return NULL;
 }
 
-/* Assume that there's no object with the same uri in the cache */
-int cache_insert(char *uri, void *data, size_t objectsize) {
+/* Assume that there's no object with the same nodeid in the cache */
+int cache_insert(char *nodeid, size_t key_len) {
 
-  /* Ignore spurious call */
-  if (objectsize == 0)
-    return -1;
-
-  /* Check whether object size exceed maximum size */
-  if (objectsize > MAX_OBJECT_SIZE)
-    return -2;
-
-
-  /* Check whether cache has space to store a new object
-    Evict until this new object fits the cache */
-  while (cache.size + objectsize > MAX_CACHE_SIZE) {
-    cache_evict();
-    printf("Evicted (cache size = %u, and we need %u)\n", (unsigned int)cache.size, (unsigned int)objectsize);
-  }
+  assert(key_len == MAX_KEY_LENGTH);
 
   /* Create a new cache object. Copy data to the cache object's */
   CacheObject *newobject = (CacheObject *)calloc(1, sizeof(CacheObject));
-  newobject->size = objectsize;
-  newobject->data = calloc(1, objectsize);
-  newobject->uri = (char *)calloc(1, strlen(uri));
-  memcpy(newobject->uri, uri, strlen(uri));
-  memcpy(newobject->data, data, objectsize);
+  newobject->nodeid = (char *)calloc(1, strlen(nodeid));
+
+  memcpy(newobject->nodeid, nodeid, strlen(nodeid));
+  DBID* nodedbid = new DBID(nodeid);
+  newobject->dbid = nodedbid;
 
   printf("[Thread %u] :insert: sem_wait(&cache.w)\n", (unsigned int)pthread_self());
   sem_wait(&cache.w); /* Lock writer */
 
+  /* There is no node in the list */
   if (cache.head == NULL && cache.tail == NULL) {
     cache.head = newobject;
     cache.tail = newobject;
     newobject->prev = NULL;
     newobject->next = NULL;
+    printf("~~~~~~~ init a new node: %s\n", nodeid);
   } else {
-    /* Append this cache object to the tail & update cache's tail pointer */
-    (cache.tail)->next = newobject;
-    newobject->prev = cache.tail;
-    newobject->next = NULL;
-    cache.tail = newobject;
+    /* Seach for the node that has nodeid < the given nodeid and 
+                  the next nodeid > the given nodeid */
+    CacheObject *ptr = cache.head;
+      printf("~~~~~~~ Looking for nodeid = %s\n", nodeid);
+      while (ptr != NULL) {
+        printf("\tLooking cache nodeid = %s..\n", ptr->nodeid);
+        /* Look for a cache object with the same nodeid.
+          When found, move this object to the tail.
+          Then return this object. */
+        if (ptr->next != NULL){ // More than 2 nodes exist 
+            CacheObject *next_node = ptr->next;
+            /* Compare the two nodes, if nodeid is in range, insert it between */
+            if( (strcasecmp(nodeid, ptr->nodeid) > 0) &&
+               (strcasecmp(nodeid, next_node->nodeid) < 0) ){
+                ptr->next = newobject;
+                newobject->prev = ptr;
+                newobject->next = next_node;
+                next_node->prev = newobject;
+                printf("\tinsert %s between\n", nodeid);
+                break;
+            }
+        }else{ // One node exists
+          if (strcasecmp(nodeid, ptr->nodeid) > 0){
+            // insert after the ptr node
+            newobject->next = ptr->next;
+            ptr->next = newobject;
+            newobject->prev = ptr;
+
+            if (cache.tail == ptr){
+              cache.tail = newobject;
+            }
+
+            printf("\tInsert after %s\n", ptr->nodeid);
+            break;
+          }else if (strcasecmp(nodeid, ptr->nodeid) > 0){
+            // insert before the ptr node
+            newobject->prev = ptr->prev;
+            newobject->next = ptr;
+            ptr->prev = newobject;
+
+            // change the cache head
+            if (cache.head == ptr){
+              cache.head = newobject;  
+            }
+
+            printf("\tInsert before %s\n", ptr->nodeid);
+            break;
+          }else{
+            printf("\tEqual nodeid: %s\n", ptr->nodeid);
+          }
+        }
+
+        ptr = ptr->next;
+      }
+
   }
   /* Update cache size */
-  cache.size += objectsize;
 
   printf("[Thread %u] :insert: sem_post(&cache.w)\n", (unsigned int)pthread_self());
   sem_post(&cache.w); /* Unlock writer */
@@ -474,10 +482,9 @@ void cache_evict() {
   CacheObject *victim = cache.head;
   cache.head = victim->next;
   (cache.head)->prev = NULL;
-  free(victim->data);
+  delete victim->dbid;
   free(victim);
 
-  cache.size -= victim->size;
 
   printf("[Thread %u] :evict: sem_post(&cache.w)\n", (unsigned int)pthread_self());
   sem_post(&cache.w); /* Unlock writer */
@@ -488,7 +495,7 @@ void print_cache() {
   printf("** Cache (size = %u) **\n", (unsigned int)cache.size);
   CacheObject *ptr = cache.head;
   while (ptr != NULL) {
-    printf("\t%s\n", ptr->uri);
+    printf("\t%s\n", ptr->nodeid);
     ptr = ptr->next;
   }
   printf("** end **\n");
@@ -524,6 +531,9 @@ void process_conn(int browserfd) {
     int webserverfd, n, is_exceeded_max_object_size;
     size_t cachebuf_size, headerbuf_size;
 
+    struct hostent *hp;
+    char *haddrp;
+    struct sockaddr_in clientaddr;
 
     Rio_readinitb(&browser_rio, browserfd);
     while((n = Rio_readlineb(&browser_rio, buf, MAXLINE)) != 0){
@@ -533,7 +543,12 @@ void process_conn(int browserfd) {
       if (!strcasecmp(method, "CONN")) {
         // SILT request to join the cluster
         // Update cache table
-        printf("CONN request from SILT\n");
+        printf("CONN request from SILT: id=%s\n", key);
+        
+        // printf("dbid = %s\n", nodeid_hash);
+        // nodeid_hash->printValue();
+
+        cache_insert(key, MAX_KEY_LENGTH);
 
       }else if (strcasecmp(method, "GET") == 0) {
         printf("GET request to SILT\n");
@@ -541,8 +556,9 @@ void process_conn(int browserfd) {
         CacheObject *cacheobj = cache_get(key);
         if (cacheobj != NULL) {
             /* Serve this cached object to the browser right away */
-            Rio_writen(browserfd, cacheobj->data, cacheobj->size);
-            printf("@@@@@ Served from the cache %u bytes\n", (unsigned int)cacheobj->size);
+            // Rio_writen(browserfd, ">>>>>GET", strlen(">>>>>GET"));
+          printf(">>>> Found %s\n", cacheobj->dbid->actual_data());
+            // printf("@@@@@ Served from the cache %u bytes\n", (unsigned int)cacheobj->size);
             return;
         }
 
@@ -554,7 +570,7 @@ void process_conn(int browserfd) {
         printf("EXIT...");
         return;
       }else{
-        char *notsupport = "METHOD NOT SUPPORTED";
+        char *notsupport = "METHOD NOT SUPPORTED\n";
         Rio_writen(browserfd, notsupport, strlen(notsupport));
         // return;
       }
