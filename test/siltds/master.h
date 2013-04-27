@@ -40,7 +40,7 @@ sbuf_t sbuf; /* Shared buffer of connected descriptors */
 struct cacheobject_t {
     struct cacheobject_t *prev, *next;
     char *nodeid;
-    DBID *dbid;
+    char *hash;
     int siltfd;
 };
 typedef struct cacheobject_t CacheObject;

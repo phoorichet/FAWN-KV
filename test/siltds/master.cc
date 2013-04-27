@@ -6,14 +6,15 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <semaphore.h>
-#include <assert.h>  
+#include <assert.h>
 
 #include "master.h"
 #include "fawnds_factory.h"
 #include "fawnds_types.h"
 #include "fawnds.h"
 #include "csapp.h"
-
+#include "hashutil.h"
+#include "print.h"
 
 
 using namespace std;
@@ -337,6 +338,7 @@ void cache_init() {
 }
 
 CacheObject *cache_get(char *key) {
+  CacheObject *ret_obj = NULL;
   printf("[Thread %u] :cache_get: sem_wait(&cache.mutex)\n", (unsigned int)pthread_self());
   sem_wait(&cache.mutex);
   cache.readcnt++;
@@ -349,23 +351,39 @@ CacheObject *cache_get(char *key) {
   sem_post(&cache.mutex);
 
   CacheObject *ptr = cache.head;
-  printf("~~~~~~~ Looking for key = %s\n", key);
+  cout << "~~~~~~~ Looking for key " << bytes_to_hex(key) << endl;
   while (ptr != NULL) {
-    printf("\tLooking cache key = %s..\n", ptr->nodeid);
+    cout << "\tLooking cache key = " << bytes_to_hex(ptr->hash) << endl;
 
-    /* Compare the two nodes, if key is in range, insert it between */
-    if ((ptr->next != NULL) && (ptr->prev != NULL)){ /* 2 node exist */
-      DBID *nextdbid, *prevdbid;
-      nextdbid = ptr->next->dbid;
-      prevdbid = ptr->prev->dbid;
-      if (between(prevdbid, nextdbid, ptr->dbid)){
-        printf(">>>>> found dbid between %s\n", ptr->dbid->actual_data());
+    if (ptr->next != NULL){
+      /* Compare the two nodes, if key is in range, insert it between */
+      if( (strcasecmp(key, ptr->hash) >= 0) &&
+         (strcasecmp(key, ptr->next->hash) < 0) ){
+          ret_obj = ptr;
+          break;
+      }  
+    }else{
+      if (ptr->prev == NULL){ // First node
+          ret_obj = ptr;
+          break;
+      }else{ // last node
+          if (strcasecmp(key, ptr->hash) >= 0){
+            ret_obj = ptr;
+            break;
+          }else{
+            ret_obj = ptr->prev;
+            break;
+          }
       }
     }
-
+    
     ptr = ptr->next;
   }
-  printf("... cache missed :(\n");
+  
+  if (ret_obj != NULL)
+    cout << "\tfound key " << bytes_to_hex(key) << " at nodeid " << bytes_to_hex(ptr->hash) << endl;
+  else
+    cout << "##### db missed" << endl;
 
   printf("[Thread %u] :cache_get: sem_wait(&cache.mutex)\n", (unsigned int)pthread_self());
   sem_wait(&cache.mutex); /* Lock mutex */
@@ -378,22 +396,24 @@ CacheObject *cache_get(char *key) {
   sem_post(&cache.mutex); /* Unlock mutex */
   printf("[Thread %u] :cache_get: sem_post(&cache.mutex)\n", (unsigned int)pthread_self());
 
-  return NULL;
+  assert(ret_obj != NULL);
+
+  return ret_obj;
 }
 
 /* Assume that there's no object with the same nodeid in the cache */
 int cache_insert(char *nodeid, size_t key_len) {
 
-  assert(key_len == MAX_KEY_LENGTH);
-
   /* Create a new cache object. Copy data to the cache object's */
   CacheObject *newobject = (CacheObject *)calloc(1, sizeof(CacheObject));
+  newobject->hash = (char *)calloc(1, MAX_KEY_LENGTH);
   newobject->nodeid = (char *)calloc(1, strlen(nodeid));
 
+  string key = HashUtil::MD5Hash(nodeid, MAX_KEY_LENGTH);
+  char *ckey = strdup(key.c_str());
   memcpy(newobject->nodeid, nodeid, strlen(nodeid));
-  DBID* nodedbid = new DBID(nodeid);
-  newobject->dbid = nodedbid;
-
+  memcpy(newobject->hash, ckey, MAX_KEY_LENGTH);
+  
   printf("[Thread %u] :insert: sem_wait(&cache.w)\n", (unsigned int)pthread_self());
   sem_wait(&cache.w); /* Lock writer */
 
@@ -403,22 +423,24 @@ int cache_insert(char *nodeid, size_t key_len) {
     cache.tail = newobject;
     newobject->prev = NULL;
     newobject->next = NULL;
-    printf("~~~~~~~ init a new node: %s\n", nodeid);
+    // printf( %s\n", nodeid);
+    cout << "~~~~~~~ init a new node: " << nodeid << " : " << bytes_to_hex(key) << endl;
   } else {
     /* Seach for the node that has nodeid < the given nodeid and 
                   the next nodeid > the given nodeid */
     CacheObject *ptr = cache.head;
-      printf("~~~~~~~ Looking for nodeid = %s\n", nodeid);
+      cout<< "~~~~~~~ Looking for hash = " << bytes_to_hex(newobject->hash) << endl;
       while (ptr != NULL) {
-        printf("\tLooking cache nodeid = %s..\n", ptr->nodeid);
+        cout<< "\tLooking for hash = " << bytes_to_hex(ptr->hash) << endl;
         /* Look for a cache object with the same nodeid.
           When found, move this object to the tail.
           Then return this object. */
         if (ptr->next != NULL){ // More than 2 nodes exist 
             CacheObject *next_node = ptr->next;
             /* Compare the two nodes, if nodeid is in range, insert it between */
-            if( (strcasecmp(nodeid, ptr->nodeid) > 0) &&
-               (strcasecmp(nodeid, next_node->nodeid) < 0) ){
+            if( (strcasecmp(ckey, ptr->hash) > 0) &&
+               (strcasecmp(ckey, next_node->hash) < 0) )
+            {
                 ptr->next = newobject;
                 newobject->prev = ptr;
                 newobject->next = next_node;
@@ -426,8 +448,10 @@ int cache_insert(char *nodeid, size_t key_len) {
                 printf("\tinsert %s between\n", nodeid);
                 break;
             }
+
         }else{ // One node exists
-          if (strcasecmp(nodeid, ptr->nodeid) > 0){
+          // if (newobject->hash.compare(ptr->hash) > 0){
+          if (strcasecmp(ckey, ptr->hash) > 0){
             // insert after the ptr node
             newobject->next = ptr->next;
             ptr->next = newobject;
@@ -437,12 +461,14 @@ int cache_insert(char *nodeid, size_t key_len) {
               cache.tail = newobject;
             }
 
-            printf("\tInsert after %s\n", ptr->nodeid);
+            cout << "\tInsert after " << bytes_to_hex(ptr->hash) << endl;
             break;
-          }else if (strcasecmp(nodeid, ptr->nodeid) > 0){
+          // }else if (newobject->hash.compare(ptr->hash) < 0 ){
+          }else if (strcasecmp(ckey, ptr->hash) < 0){
             // insert before the ptr node
             newobject->prev = ptr->prev;
             newobject->next = ptr;
+            ptr->prev->next = newobject;
             ptr->prev = newobject;
 
             // change the cache head
@@ -450,10 +476,21 @@ int cache_insert(char *nodeid, size_t key_len) {
               cache.head = newobject;  
             }
 
-            printf("\tInsert before %s\n", ptr->nodeid);
+            cout << "\tInsert before " << bytes_to_hex(ptr->hash) << endl;
             break;
           }else{
-            printf("\tEqual nodeid: %s\n", ptr->nodeid);
+            // Replace the old node
+            newobject->next = ptr->next;
+            newobject->prev = ptr->prev;
+            // change the cache head
+            if (cache.head == ptr){
+              cache.head = newobject;  
+            }
+            if (cache.tail == ptr){
+              cache.tail = newobject;
+            }
+            cout << "\tReplace existing node " << bytes_to_hex(ptr->hash) << endl;
+            break;
           }
         }
 
@@ -482,7 +519,7 @@ void cache_evict() {
   CacheObject *victim = cache.head;
   cache.head = victim->next;
   (cache.head)->prev = NULL;
-  delete victim->dbid;
+  // free(victim->hash);
   free(victim);
 
 
@@ -491,11 +528,10 @@ void cache_evict() {
 }
 
 void print_cache() {
-  return;
   printf("** Cache (size = %u) **\n", (unsigned int)cache.size);
   CacheObject *ptr = cache.head;
   while (ptr != NULL) {
-    printf("\t%s\n", ptr->nodeid);
+    cout << "\t" << bytes_to_hex(ptr->hash) << endl;
     ptr = ptr->next;
   }
   printf("** end **\n");
@@ -553,13 +589,13 @@ void process_conn(int browserfd) {
       }else if (strcasecmp(method, "GET") == 0) {
         printf("GET request to SILT\n");
         // Look up for SILT node id
-        CacheObject *cacheobj = cache_get(key);
+        string hash = HashUtil::MD5Hash(key, MAX_KEY_LENGTH);
+        char *ckey = strdup(hash.c_str());
+        CacheObject *cacheobj = cache_get(ckey);
         if (cacheobj != NULL) {
             /* Serve this cached object to the browser right away */
-            // Rio_writen(browserfd, ">>>>>GET", strlen(">>>>>GET"));
-          printf(">>>> Found %s\n", cacheobj->dbid->actual_data());
-            // printf("@@@@@ Served from the cache %u bytes\n", (unsigned int)cacheobj->size);
-            return;
+            // Rio_writen(browserfd, cacheobj->data, cacheobj->size);
+            printf("@@@@@ Served nodeis %s\n", cacheobj->nodeid);
         }
 
         // Forward the request to SILT node
@@ -572,104 +608,11 @@ void process_conn(int browserfd) {
       }else{
         char *notsupport = "METHOD NOT SUPPORTED\n";
         Rio_writen(browserfd, notsupport, strlen(notsupport));
-        // return;
       }
 
     }
-    
 
-    // /* Check if the object with this uri is existed in the cache */
-    // CacheObject *cacheobj = cache_get(uri);
-    // if (cacheobj != NULL) {
-    //     /* Serve this cached object to the browser right away */
-    //     Rio_writen(browserfd, cacheobj->data, cacheobj->size);
-    //     printf("@@@@@ Served from the cache %u bytes\n", (unsigned int)cacheobj->size);
-    //     return;
-    // }
-
-    // /* Read the rest of request header */
-    // headerbuf_size = 0;
-    // do {
-    //     n = Rio_readlineb(&browser_rio, buf, MAXLINE);
-    //     printf("~~~~~ buf[size=%u]: %s\n", n, buf);
-    //     memcpy((headerbuf + headerbuf_size), buf, n);
-    //     headerbuf_size += n;
-    // } while (strcmp(buf, "\r\n") != 0);
-
-    // printf("~~~~~ Yep! We got em' all~\n");
-
-    // parse_host_from_buf(headerbuf, host);
-
-    // /* Extract path from URI */
-    // parse_uri(uri, path);
-
-    // // TODO: BUFFER THE REST OF HEADER THEN SCAN FOR "HOST" THEN FORWARD THEM TO THE SERVER
-
-    // /* Read Host value and store it */
-    // if (!parse_host(&browser_rio, buf, host)) {
-    //     clienterror(browserfd, method, "501", "Host header not found", buf);
-    //     return;
-    // }
-
-    // /* Connect to the server specified by "host" */
-    // // printf("* [Thread %u] Connecting to %s..", (unsigned int)pthread_self(), host);
-    // if ((webserverfd = open_clientfd(host, HTTP_PORT)) < 0) {
-    //     if (webserverfd == -1)
-    //         clienterror(browserfd, method, "501", "Unix error", strerror(errno));
-    //     else {   
-    //         clienterror(browserfd, method, "501", "DNS error", strerror(errno));
-    //     }
-    //     return;
-    // }
-    // // printf(" connected.\n");
-    // Rio_readinitb(&webserver_rio, webserverfd);
-
-    // /* Send HTTP header */
-    // write_defaulthdrs(webserverfd, method, host, path);
-
-    // /* Read the rest of the header and forward necessary ones */
-    // readwrite_requesthdrs(&browser_rio, webserverfd);
-
-    // /* Read each line of response from the web server
-    //     Accumulate it to the cache buffer, then forward it to the browser */
-    // cachebuf_size = 0;
-    // is_exceeded_max_object_size = 0;
-    // while ((n = Rio_readlineb(&webserver_rio, buf, MAXLINE)) != 0) {
-    //     /* If accumulating this makes cachebuf exceeds max size, 
-    //         then we don't need to put this cachebuf to the cache. */
-    //     if (!is_exceeded_max_object_size &&
-    //         cachebuf_size + n <= MAX_OBJECT_SIZE) {
-    //         memcpy((cachebuf + cachebuf_size), buf, n);
-    //         cachebuf_size += n;
-    //     } else {
-    //         is_exceeded_max_object_size = 1;
-    //     }
-
-    //     Rio_writen(browserfd, buf, n);
-    // }
-
-    // /* If this cachebuf doesn't exceed the maximum size,
-    //     then put it in the cache */
-    // if (!is_exceeded_max_object_size) {
-    //     int errorcode = cache_insert(uri, cachebuf, cachebuf_size);
-    //     if (!errorcode) {
-    //         printf("^^^^^^ Inserted to the cache %u bytes (now cache size = %u)\n", 
-    //             (unsigned int)cachebuf_size, (unsigned int)cache.size);
-    //     } else {
-    //         // TODO: To test robustness for BIG object
-    //         printf("damn it I couldn't insert to cache %d\n",errorcode);
-    //         exit(0);
-    //     }
-    // } else {
-    //     printf("XXX Object exceeds max size. Not cached. XXX\n");
-    // }
-    
-    // Close(webserverfd);
 }
-
-
-
-
 
 
 int main(int argc, char **argv){
@@ -713,11 +656,6 @@ int main(int argc, char **argv){
         printf("Accepted browserfd = %d to s_buf\n", browserfd);
         sbuf_insert(&sbuf, browserfd); /* Insert browserfd in buffer */
 
-//        /* Show information of connected client */
-//        hp = Gethostbyaddr((const char *)&clientaddr.sin_addr.s_addr,
-//            sizeof(clientaddr.sin_addr.s_addr), AF_INET);
-//        haddrp = inet_ntoa(clientaddr.sin_addr);
-//        printf("server connected to %s (%s)\n", hp->h_name, haddrp);
     }
 
     sbuf_deinit(&sbuf);
