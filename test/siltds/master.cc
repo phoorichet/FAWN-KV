@@ -574,7 +574,7 @@ void process_conn(int browserfd) {
     Rio_readinitb(&browser_rio, browserfd);
     while((n = Rio_readlineb(&browser_rio, buf, MAXLINE)) != 0){
       sscanf(buf, "%s %s %s", method, key, value);
-      printf("[Thread %u] <=== %s", (unsigned int)pthread_self(), buf);
+      // printf("[Thread %u] <=== %s", (unsigned int)pthread_self(), buf);
 
       if (!strcasecmp(method, "CONN")) {
         // SILT request to join the cluster
@@ -583,9 +583,20 @@ void process_conn(int browserfd) {
         
         // printf("dbid = %s\n", nodeid_hash);
         // nodeid_hash->printValue();
+        int success = 0;
+        char *ret_desc;
+        if ((success = cache_insert(key, MAX_KEY_LENGTH)) > 0){
+          ret_desc = "failed to connect the master\r\n";
+        }else{
+          ret_desc = "connected to the master\r\n";
+        }
+        Rio_writen(browserfd, ret_desc, strlen(ret_desc));
+        cout << "Write result back to the client: " << ret_desc << endl;
 
-        cache_insert(key, MAX_KEY_LENGTH);
-
+        ret_desc = "PUT 12345678901234567890 1234\r\n";
+        Rio_writen(browserfd, ret_desc, strlen(ret_desc)); 
+        ret_desc = "GET 12345678901234567890\r\n";
+        Rio_writen(browserfd, ret_desc, strlen(ret_desc)); 
       }else if (strcasecmp(method, "GET") == 0) {
         printf("GET request to SILT\n");
         // Look up for SILT node id
@@ -600,14 +611,20 @@ void process_conn(int browserfd) {
 
         // Forward the request to SILT node
       }else if (strcasecmp(method, "PUT") == 0) {
-        printf("PUT request to SILT\n");
+        cout << "PUT RAW [" << strlen(buf) << "] " << bytes_to_hex(buf) << endl;
+        cout << "PUT " << bytes_to_hex(key) << " -> "<< bytes_to_hex(value) << endl;
 
+        char *ret_desc = "2222\n";
+        Rio_writen(browserfd, ret_desc, strlen(ret_desc));
+        cout << "@@@@@ Server send rc " << ret_desc << endl;
       }else if (strcasecmp(method, "EXIT") == 0){
         printf("EXIT...");
         return;
       }else{
         char *notsupport = "METHOD NOT SUPPORTED\n";
+        cout << "EEEEE WTF!" << bytes_to_hex(buf) << endl;
         Rio_writen(browserfd, notsupport, strlen(notsupport));
+        Rio_writen(browserfd, buf, strlen(buf));
       }
 
     }
