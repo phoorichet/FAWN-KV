@@ -1,7 +1,7 @@
 # 0.56 hours at 50 K QPS
-operationcount=100000000
-readproportion=0.50
-updateproportion=0.50
+operationcount=10000000
+readproportion=1
+updateproportion=0
 scanproportion=0
 insertproportion=0
 requestdistribution=uniform

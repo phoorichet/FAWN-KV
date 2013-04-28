@@ -1,5 +1,42 @@
-#hashdb_test code
-noinst_PROGRAMS = testSilt testFawnDS testIterator testTrie testCuckoo testCombi testByYCSBWorkload benchCuckoo benchSemiRandomWrite benchStores preprocessTrace
+noinst_PROGRAMS = siltcluster master siltnode testSilt testFawnDS testIterator testTrie testCuckoo testCombi testByYCSBWorkload benchCuckoo benchSemiRandomWrite benchStores preprocessTrace
+	
+siltcluster_SOURCES = siltcluster.cpp
+siltcluster_CPPFLAGS = 			\
+	-I$(top_srcdir)/utils 			\
+	-I$(top_srcdir)/fawnds			\
+	-I$(top_builddir)/siltds		\
+	-I$(top_builddir)/siltds/gen-cpp
+
+siltcluster_LDADD = 				\
+	$(top_builddir)/siltds/libfawnds.la 	\
+	$(top_builddir)/utils/libfawnkvutils.la \
+	$(top_builddir)/siltds/libsiltcluster.la \
+	-lthrift
+
+siltnode_SOURCES = siltnode.cc csapp.c csapp.h
+siltnode_CPPFLAGS = 			\
+	-I$(top_srcdir)/utils 			\
+	-I$(top_srcdir)/fawnds			\
+	-I$(top_builddir)/siltds		\
+	-I$(top_builddir)/siltds/gen-cpp
+
+siltnode_LDADD = 				\
+	$(top_builddir)/siltds/libfawnds.la 	\
+	$(top_builddir)/utils/libfawnkvutils.la \
+	$(top_builddir)/siltds/libsiltcluster.la \
+	$(THRIFT_LIBS)
+
+master_SOURCES = master.cc master.h csapp.c csapp.h
+master_CPPFLAGS = 			\
+	-I$(top_srcdir)/utils 			\
+	-I$(top_srcdir)/fawnds			\
+	-I$(top_builddir)/siltds		\
+	-I$(top_builddir)/siltds/gen-cpp
+
+master_LDADD = 				\
+	$(top_builddir)/siltds/libfawnds.la 	\
+	$(top_builddir)/utils/libfawnkvutils.la 
+
 testSilt_SOURCES = testSilt.cpp
 testSilt_CPPFLAGS = 			\
 	-I$(top_srcdir)/utils 			\
@@ -82,13 +119,16 @@ testByYCSBWorkload_CPPFLAGS = 			\
 	-I$(top_builddir)/fawnkv			\
 	-I$(top_builddir)/fawnds		\
 	-I$(top_builddir)/siltds		\
-	-I$(top_builddir)/siltds/gen-cpp 
+	-I$(top_builddir)/siltds/gen-cpp \
+	-I$(top_builddir)/test/siltds/gen-cpp
 
 testByYCSBWorkload_LDADD = 				\
 	$(top_builddir)/siltds/libfawnds.la 	\
 	$(top_builddir)/fawnkv/libfawnkv.la 	\
 	$(top_builddir)/utils/libfawnkvutils.la \
-	$(THRIFT_LIBS)
+	$(top_builddir)/siltds/libsiltcluster.la 	\
+	-lthrift 			\
+	$(THRIFT_LIBS) 
 
 benchCuckoo_SOURCES = benchCuckoo.cc
 benchCuckoo_CPPFLAGS = 			\
@@ -132,4 +172,7 @@ preprocessTrace_SOURCES= preprocessTrace.cc
 preprocessTrace_CPPFLAGS =
 
 preprocessTrace_LDADD =
+
+
+#CLEANFILES = $(nodist_libfawnkv_la_SOURCES) $(SKELETON_CODE)
 

@@ -867,7 +867,7 @@ void node_mgr::put(const std::string& key, const std::string& value, const int32
   interval_db *i = findIntervalDb(&key, WRLOCK);
   //cout << "   - [put] got lock" << endl;
   
-  put_helper(key, value, hops, ackhops, continuation, seq, flush, remove, ip, i, -1);
+  put_helper(key, value, hops, ackhops, continuation, seq, false, remove, ip, i, -1);
   
   num_puts++;
   total_num_puts++;

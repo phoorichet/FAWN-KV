@@ -1,4 +1,4 @@
-noinst_LTLIBRARIES = libfawnds.la
+noinst_LTLIBRARIES = libfawnds.la libsiltcluster.la
 libfawnds_la_CPPFLAGS = -I$(top_srcdir)/utils -D_FILE_OFFSET_BITS=64 \
 			-I$(builddir)/gen-cpp -Icindex -g
 libfawnds_la_LIBADD = $(top_builddir)/utils/libfawnkvutils.la
@@ -11,7 +11,7 @@ noinst_HEADERS = 	DOMTreeErrorReporter.hpp	\
 			task.h				\
 			value.h				\
 			rate_limiter.h			\
-            global_limits.h         \
+      global_limits.h         \
 			fawnds_types.h			\
 			fawnds_iterator.h		\
 			fawnds.h			\
@@ -59,7 +59,32 @@ libfawnds_la_SOURCES =  DOMTreeErrorReporter.cpp	\
 			cindex/twolevel_reloff_bucketing.cpp	\
 			cindex/semi_direct_16_absoff_bucketing.cpp	\
 			cindex/semi_direct_16_reloff_bucketing.cpp	\
-			cindex/bucketing_index.cpp			
+			cindex/bucketing_index.cpp	
+
+#noinst_LTLIBRARIES = libsiltcluster.la
+libsiltcluster_la_CPPFLAGS = -I$(top_srcdir)/utils  		\
+	-I$(builddir)/gen-cpp		\
+	-I$(top_srcdir)/fawnds		\
+	-I$(top_builddir)/fawnds
+
+nodist_libsiltcluster_la_SOURCES =				\
+	$(builddir)/gen-cpp/SiltCluster.cpp 		\
+	$(builddir)/gen-cpp/SitlCluster.h 		\
+	$(builddir)/gen-cpp/SiltNode.cpp 		\
+	$(builddir)/gen-cpp/SitlNode.h 		\
+	$(builddir)/gen-cpp/silt_constants.cpp 	\
+	$(builddir)/gen-cpp/silt_constants.h 		\
+	$(builddir)/gen-cpp/silt_types.cpp 		\
+	$(builddir)/gen-cpp/silt_types.h
+
+SKELETON_CODE = \
+	$(builddir)/gen-cpp/SiltCluster_server.skeleton.cpp	\
+	$(builddir)/gen-cpp/SiltNode_server.skeleton.cpp	
+
+BUILT_SOURCES = $(nodist_libsiltcluster_la_SOURCES)
+
+$(nodist_libsiltcluster_la_SOURCES) : silt.thrift 
+	thrift -r -o $(builddir) --gen cpp $(srcdir)/silt.thrift		
 
 CLEANFILES = $(BUILT_SOURCES)
 
@@ -70,8 +95,8 @@ CLEANFILES = $(BUILT_SOURCES)
 # that link against this library
 #libfawnds_la_LDFLAGS = -rpath `pwd`
 
-noinst_PROGRAMS = fawnds_bench
-fawnds_bench_SOURCES = fawnds_bench.cc
-fawnds_bench_CPPFLAGS = -I$(top_srcdir)/utils -I$(builddir)/gen-cpp -g
-fawnds_bench_LDADD = $(top_builddir)/utils/libfawnkvutils.la libfawnds.la -lxerces-c
+#noinst_PROGRAMS = fawnds_bench
+#fawnds_bench_SOURCES = fawnds_bench.cc
+#fawnds_bench_CPPFLAGS = -I$(top_srcdir)/utils -I$(builddir)/gen-cpp -g
+#fawnds_bench_LDADD = $(top_builddir)/utils/libfawnkvutils.la libfawnds.la -lxerces-c
 

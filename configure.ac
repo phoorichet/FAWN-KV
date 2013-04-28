@@ -14,6 +14,7 @@ AC_CONFIG_HEADER([config.h])
 AC_PROG_CXX
 AC_PROG_CC
 AC_PROG_MAKE_SET
+AM_PROG_CC_C_O
 
 AC_PROG_LIBTOOL
 AC_CONFIG_MACRO_DIR([m4])
@@ -89,9 +90,11 @@ AC_FUNC_SELECT_ARGTYPES
 AC_TYPE_SIGNAL
 AC_CHECK_FUNCS([bzero ftruncate gethostbyname getpagesize gettimeofday inet_ntoa memchr memmove memset munmap select socket strdup strerror strtol strtoul strtoull])
 
+THRIFT_LIBS = "-lthrift"
+
 CFLAGS="$CFLAGS -Wall -Wextra"
 CXXFLAGS="$CXXFLAGS -Wall -Wextra -Wno-unused-parameter -Wno-unused-variable -I/afs/ece/usr/pthepdus/local/include -lgtest -lthrift"
-LDFLAGS="-L/afs/ece/usr/pthepdus/local/lib -L/afs/ece/usr/pthepdus/local/lib64 -L/afs/ece/usr/pthepdus/local/include -ltbb -lgsl -lgslcblas -lxerces-c"
+LDFLAGS="-L/afs/ece/usr/pthepdus/local/lib -L/afs/ece/usr/pthepdus/local/lib64 -L/afs/ece/usr/pthepdus/local/include -ltbb -lgsl -lgslcblas -lxerces-c -lthrift"
 AC_CONFIG_FILES([ Makefile
 		  utils/Makefile
 		  fawnds/Makefile
