@@ -58,8 +58,6 @@ class SiltClusterHandler : virtual public SiltClusterIf {
     cout << "JOIN " << ip << " " << port << endl;
     cache_insert(ip, port, MAX_KEY_LENGTH);
 
-
-
     return 0;
   }
 
@@ -74,7 +72,7 @@ class SiltClusterHandler : virtual public SiltClusterIf {
 
       // cout << "FOUND at IP: " << cacheobj->siltip << endl;
       if (cacheobj->client == NULL){
-        boost::shared_ptr<TSocket> socket(new TSocket("128.2.131.18", 8888));
+        boost::shared_ptr<TSocket> socket(new TSocket(cacheobj->siltip, cacheobj->port));
         boost::shared_ptr<TTransport> transport(new TBufferedTransport(socket));
         boost::shared_ptr<TProtocol> protocol(new TBinaryProtocol(transport));
         
@@ -95,7 +93,29 @@ class SiltClusterHandler : virtual public SiltClusterIf {
 
   void get(std::string& _return, const std::string& key) {
     // Your implementation goes here
-    printf("get\n");
+    // cout << "PUT " << bytes_to_hex(key) << endl;
+    int32_t rc = -1;
+    CacheObject *cacheobj = cache_get(key);
+    if (cacheobj != NULL){
+
+      // cout << "FOUND at IP: " << cacheobj->siltip << endl;
+      if (cacheobj->client == NULL){
+        boost::shared_ptr<TSocket> socket(new TSocket(cacheobj->siltip, cacheobj->port));
+        boost::shared_ptr<TTransport> transport(new TBufferedTransport(socket));
+        boost::shared_ptr<TProtocol> protocol(new TBinaryProtocol(transport));
+        
+        cacheobj->client = new SiltClusterClient(protocol);
+        sem_init(&(cacheobj->client_r), 0, 1);
+
+        transport->open();
+
+      }
+      // sem_wait(&(cacheobj->client_r)); /* Lock mutex */
+      cacheobj->client->get(_return, key);
+      // sem_post(&(cacheobj->client_r)); /* Unlock mutex */
+    }
+
+    return;
 
   }
 private:
@@ -108,7 +128,7 @@ private:
     int port;
     char *hash;
     SiltClusterClient *client;
-    sem_t client_w;
+    sem_t client_w, client_r;
     // boost::shared_ptr<TTransport> *transport;
   };
   typedef struct cacheobject_t CacheObject;
@@ -237,6 +257,7 @@ private:
             When found, move this object to the tail.
             Then return this object. */
           if (ptr->next != NULL){ // More than 2 nodes exist 
+            
               CacheObject *next_node = ptr->next;
               /* Compare the two nodes, if nodeid is in range, insert it between */
               if( (strcasecmp(ckey, ptr->hash) > 0) &&
@@ -253,6 +274,7 @@ private:
           }else{ // One node exists
             // if (newobject->hash.compare(ptr->hash) > 0){
             if (strcasecmp(ckey, ptr->hash) > 0){
+
               // insert after the ptr node
               newobject->next = ptr->next;
               ptr->next = newobject;
@@ -269,7 +291,13 @@ private:
               // insert before the ptr node
               newobject->prev = ptr->prev;
               newobject->next = ptr;
-              ptr->prev->next = newobject;
+
+              if (ptr->prev != NULL){
+                ptr->prev->next = newobject; 
+              }else{
+                newobject->prev = NULL;
+              }
+
               ptr->prev = newobject;
 
               // change the cache head

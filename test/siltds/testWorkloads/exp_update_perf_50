@@ -1,5 +1,5 @@
 # 0.56 hours at 50 K QPS
-operationcount=10000000
+operationcount=1000000
 readproportion=1
 updateproportion=0
 scanproportion=0

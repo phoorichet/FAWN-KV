@@ -6,7 +6,7 @@ fieldlength=0
 readallfields=true
 
 # total 6.4 GB for fieldlength=40 (+ 20 B key + 4 B metadata)
-recordcount=10000000
+recordcount=1000000
 
 # without this, YCSB may generate duplicate insert entries
 insertorder=ordered

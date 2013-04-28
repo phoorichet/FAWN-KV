@@ -72,7 +72,7 @@ class SiltNodeHandler : virtual public SiltNodeIf {
 
   void get(std::string& _return, const std::string& key) {
     // Your implementation goes here
-    printf("get\n");
+    // cout << "$$$ Client got GET " << bytes_to_hex(key) << endl;
     Value ret_data;
     ret_data.resize(0);
 
@@ -81,7 +81,18 @@ class SiltNodeHandler : virtual public SiltNodeIf {
     //     printf("error! h->Get() return key=%s, ret=%d\n", 
     //            key, ret);
     //   }
+    
+    FawnDS_Return ret = h->Get(ConstRefValue(key.c_str(), key.size()), ret_data);
+     _return = string(ret_data.data());
+    if (ret != silt::OK) {
+      cout << "error! h->GET() return key=" << bytes_to_hex(key) 
+          <<  " value=" <<  bytes_to_hex(_return.c_str()) 
+          << " ret=" << ret 
+          << endl;
+      //exit(1);
+    } 
       
+    return;
   }
 
 };

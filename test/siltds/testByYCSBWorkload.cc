@@ -107,7 +107,6 @@ void *query_sender(void * id) {
     SiltClusterClient *client;
     client = new SiltClusterClient(protocol);
     transport->open();
-    client->join(master_ip, master_port);
 
     cout << "##### client connected to " << master_ip << ":" << master_port << endl;
     char* chr = "A";
@@ -144,6 +143,8 @@ void *query_sender(void * id) {
                 //     //exit(1);
                 // }
 
+
+                // cout << "^^^^^ PUT" << endl;
                 client->put(string(q.hashed_key, 20), string(val, val_len));
                 clock_gettime(CLOCK_MONOTONIC_RAW, &ts);
                 current_time_ = static_cast<int64_t>(ts.tv_sec) * 1000000000Lu + static_cast<int64_t>(ts.tv_nsec);
@@ -177,9 +178,9 @@ void *query_sender(void * id) {
                 //            rc, OK, static_cast<unsigned long long>(cur));
                 //     //exit(1);
                 // }
-
-
-                // ret = h->Get(ConstRefValue(q.hashed_key, 20), read_data);
+                // cout << "^^^^^ GET" << endl;
+                string _ret_data;
+                client->get(_ret_data, string(q.hashed_key, 20));
                 // if (ret != expected_ret) {
                 //     printf("error! h->Get() return value=%d, expected=%d, operation%llu\n", 
                 //            ret, expected_ret, static_cast<unsigned long long>(cur));
@@ -213,6 +214,7 @@ void *query_sender(void * id) {
             }
         }
     } /* end of while (done) */
+
     transport->close();
     printf("killing thread: query_sender%ld!\n", t);
     pthread_exit(NULL);
@@ -276,10 +278,10 @@ void replay(string recfile) {
     delete latency_put;
     delete latency_get;
 
-    h->Flush();
-    sleep(10);  // these sleep() gives time for FawnDS_Monitor to print status messages after the store reaches a steady state
-    sync();
-    sleep(5);
+    // h->Flush();
+    // sleep(10);  // these sleep() gives time for FawnDS_Monitor to print status messages after the store reaches a steady state
+    // sync();
+    // sleep(5);
 }
 
 
@@ -351,8 +353,6 @@ int main(int argc, char **argv) {
 
     delete rate_limiter;
 
-    
-    delete h;
 
     // transport->close();
     // delete client;
