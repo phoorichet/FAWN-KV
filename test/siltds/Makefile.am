@@ -1,4 +1,4 @@
-noinst_PROGRAMS = siltcluster master siltnode testSilt testFawnDS testIterator testTrie testCuckoo testCombi testByYCSBWorkload testByYCSBPUT testByYCSBTrans benchCuckoo benchSemiRandomWrite benchStores preprocessTrace
+noinst_PROGRAMS = siltcluster master siltnode testSilt testFawnDS testIterator testTrie testCuckoo testCombi testByYCSBWorkload testByYCSBring testByYCSBPUT testByYCSBTrans benchCuckoo benchSemiRandomWrite benchStores preprocessTrace
 	
 siltcluster_SOURCES = siltcluster.cpp
 siltcluster_CPPFLAGS = 			\
@@ -129,6 +129,27 @@ testByYCSBWorkload_LDADD = 				\
 	$(top_builddir)/siltds/libsiltcluster.la 	\
 	-lthrift 			\
 	$(THRIFT_LIBS)
+
+testByYCSBring_SOURCES= testByYCSBring.cc
+testByYCSBring_CPPFLAGS = 			\
+	-I$(top_srcdir)/utils 			\
+	-I$(top_srcdir)/fawnds			\
+	-I$(top_srcdir)/fawnkv 			\
+	-I$(top_builddir)/fawnkv/gen-cpp 		\
+	-I$(top_builddir)/fawnkv			\
+	-I$(top_builddir)/fawnds		\
+	-I$(top_builddir)/siltds		\
+	-I$(top_builddir)/siltds/gen-cpp \
+	-I$(top_builddir)/test/siltds/gen-cpp
+
+testByYCSBring_LDADD = 				\
+	$(top_builddir)/siltds/libfawnds.la 	\
+	$(top_builddir)/fawnkv/libfawnkv.la 	\
+	$(top_builddir)/utils/libfawnkvutils.la \
+	$(top_builddir)/siltds/libsiltcluster.la 	\
+	-lthrift 			\
+	$(THRIFT_LIBS)
+
 
 testByYCSBTrans_SOURCES= testByYCSBTrans.cc
 testByYCSBTrans_CPPFLAGS = 			\
