@@ -246,7 +246,6 @@ private:
     cout << "~~~~~~~ Looking for key " << ip << ":" << port << endl;
     while (ptr != NULL) {
       cout << "\tComparing cache key = " << ptr->siltip << ":" << ptr->port << endl;
-      cout << "\t" << ip.c_str() << endl;
       if( (strcasecmp(ip.c_str(), ptr->siltip) == 0 ) && ( ptr->port == port)){
         // Remove the node
         
