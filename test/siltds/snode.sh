@@ -1,2 +1,3 @@
 #!/bin/bash
-./siltnode 128.2.131.18 9090 128.2.131.18 testConfigs/testCombi.xml
+echo $1 $2
+./siltnode 128.2.131.18 9090 $1 $2 testConfigs/testCombi.xml

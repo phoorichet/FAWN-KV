@@ -19,6 +19,7 @@
 #include "SiltCluster.h"
 #include "fawnds_factory.h"
 #include "print.h"
+#include <signal.h>
 #include "csapp.h"
 
 using namespace apache::thrift;
@@ -37,8 +38,10 @@ silt::FawnDS *h;
 char *master_ip;
 int master_port;
 char *myIP;
+int myPort;
 
-#define SILTNODE_PORT 8888
+TThreadedServer *tserver;
+SiltClusterClient *client;
 
 class SiltNodeHandler : virtual public SiltNodeIf {
  public:
@@ -76,7 +79,7 @@ class SiltNodeHandler : virtual public SiltNodeIf {
     Value ret_data;
     ret_data.resize(0);
 
-    // FawnDS_Return ret = h->Get(ConstRefValue(key, strlen(key)), ret_data);
+    // FawnDS_Return ret = h->get(ConstRefValue(key, strlen(key)), ret_data);
     // if (ret != silt::OK) {
     //     printf("error! h->Get() return key=%s, ret=%d\n", 
     //            key, ret);
@@ -138,65 +141,116 @@ int join_cluster(){
   boost::shared_ptr<TTransport> transport(new TBufferedTransport(socket));
   boost::shared_ptr<TProtocol> protocol(new TBinaryProtocol(transport));
   
-  SiltClusterClient *client;
+  
   client = new SiltClusterClient(protocol);
   transport->open();
   int rc = 0;
-  if ((rc=client->join(myIP, SILTNODE_PORT)) != 0){
+  if ((rc=client->join(myIP, myPort)) != 0){
     cout << "##### client connot connect to " << master_ip << ":" << master_port << endl;
   }else{
     cout << "##### client connected to " << master_ip << ":" << master_port << endl;
   }
+
   
   return rc;
 }
 
+
+/* $begin sigaction */
+handler_t *Signal(int signum, handler_t *handler) 
+{
+    struct sigaction action, old_action;
+
+    action.sa_handler = handler;  
+    sigemptyset(&action.sa_mask); /* block sigs of type being handled */
+    action.sa_flags = SA_RESTART; /* restart syscalls if possible */
+
+    if (sigaction(signum, &action, &old_action) < 0)
+      printf("Signal error");
+    return (old_action.sa_handler);
+}
+
+void
+sigint_handler(int sig)
+{
+  
+  printf("\nReceived sigint_handler: %d for pid=%d\n", sig, getpid());
+  client->leave(myIP, myPort);
+  tserver->stop();
+  return;
+}
+
 int main(int argc, char **argv) {
 
-  if (argc < 3){
-    cerr << "Usage: cluster_ip cluster_port xmlconfig" << endl;
+  if (argc < 4){
+    cerr << "Usage: cluster_ip cluster_port myip myport xmlconfig" << endl;
     exit(1);
   }
-  shared_ptr<SiltNodeHandler> handler(new SiltNodeHandler());
-  shared_ptr<TProcessor> processor(new SiltNodeProcessor(handler));
-  shared_ptr<TServerTransport> serverTransport(new TServerSocket(SILTNODE_PORT));
-  shared_ptr<TTransportFactory> transportFactory(new TBufferedTransportFactory());
-  shared_ptr<TProtocolFactory> protocolFactory(new TBinaryProtocolFactory());
+  
 
   master_ip = argv[1];
   master_port = atoi(argv[2]);
   myIP = argv[3];
-  char *xmlconfig = argv[4];
+  myPort = atoi(argv[4]);
+  char *xmlconfig = argv[5];
+
+  shared_ptr<SiltNodeHandler> handler(new SiltNodeHandler());
+  shared_ptr<TProcessor> processor(new SiltNodeProcessor(handler));
+  shared_ptr<TServerTransport> serverTransport(new TServerSocket(myPort));
+  shared_ptr<TTransportFactory> transportFactory(new TBufferedTransportFactory());
+  shared_ptr<TProtocolFactory> protocolFactory(new TBinaryProtocolFactory());
 
 
-  cout << "##### master" << master_ip << ":" 
-      << master_port << " - myport" << SILTNODE_PORT
+  cout << "##### master" << master_ip << ":" << master_port 
+      << " myself " << myIP << ":" << myPort
        << xmlconfig << endl;
 
-  // Create silt database
-  h = silt::FawnDS_Factory::New(xmlconfig); // test_num_records_
-  if (h->Create() != silt::OK) {
-        cout << "cannot create FAWNDS!" << endl;
-        exit(0);
-  }
+  Signal(SIGINT,  sigint_handler);   /* ctrl-c */
 
-  // Join the cluster
-  if (join_cluster() != 0)
-  {
+  try{
+    // Create silt database
+    h = silt::FawnDS_Factory::New(xmlconfig); // test_num_records_
+    if (h->Create() != silt::OK) {
+          cout << "cannot create FAWNDS!" << endl;
+          exit(0);
+    }
+
+
+    // Join the cluster
+    if (join_cluster() != 0)
+    {
+      h->Close();
+      exit(1);
+    }
+
+
+              tserver =  new TThreadedServer(processor,
+                           serverTransport,
+                           transportFactory,
+                           protocolFactory);
+
+    // TSimpleServer server(processor, serverTransport, transportFactory, protocolFactory);
+    cout << "##### Running on port " << myPort << endl;
+
+
+    tserver->serve();
+
     h->Close();
-    exit(1);
+
+  }catch (const TException &tx) {
+      std::cerr << "ERROR: " << tx.what() << std::endl;
+      boost::shared_ptr<TSocket> socket(new TSocket(master_ip, master_port));
+      boost::shared_ptr<TTransport> transport(new TBufferedTransport(socket));
+      boost::shared_ptr<TProtocol> protocol(new TBinaryProtocol(transport));
+      
+      SiltClusterClient *client;
+      client = new SiltClusterClient(protocol);
+      transport->open();
+
+      client->leave(myIP, myPort);
+
+      transport->close();
   }
-
-  TThreadedServer server(processor,
-                         serverTransport,
-                         transportFactory,
-                         protocolFactory);
-
-  // TSimpleServer server(processor, serverTransport, transportFactory, protocolFactory);
-  cout << "##### Running on port " << SILTNODE_PORT << endl;
-  server.serve();
-
-  h->Close();
   return 0;
 }
 

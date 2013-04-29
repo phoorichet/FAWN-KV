@@ -61,6 +61,15 @@ class SiltClusterHandler : virtual public SiltClusterIf {
     return 0;
   }
 
+  int32_t leave(const std::string& ip, const int32_t port) {
+    // Your implementation goes here
+    
+    cout << "LEAVE " << ip << " " << port << endl;
+    cache_delete(ip, port, MAX_KEY_LENGTH);
+
+    return 0;
+  }
+
   int32_t put(const std::string& key, const std::string& value) {
     // Your implementation goes here
     // printf("put\n");
@@ -217,6 +226,83 @@ private:
     return ret_obj;
   }
 
+  CacheObject *cache_delete(string ip, int port, size_t key_len) {
+    // char *key = strdup(skey.c_str());    
+    CacheObject *ret_obj = NULL;
+    cout << "\tDeleting IP" << ip << ":" << port << endl;
+
+    // string ipport = ip;
+    // ostringstream convert;
+    // convert << port;
+    // ipport.append(convert.str());
+    // cout << "ip+port: " << ipport << endl;
+    // char *cip = strdup(ipport.c_str());
+    // char siltip[MAX_KEY_LENGTH];
+    // memcpy(siltip, cip, ip.size());
+    // // cout << "ip:" << ip <<  " vs " << newobject->siltip << endl;
+
+    // // (newobject->siltip)(ip);
+    // string key = HashUtil::MD5Hash(siltip, MAX_KEY_LENGTH);
+    // char *ckey = strdup(key.c_str());
+    // memcpy(newobject->nodeid, nodeid, strlen(nodeid));
+
+    // printf("[Thread %u] :cache_get: sem_wait(&cache.mutex)\n", (unsigned int)pthread_self());
+    // sem_wait(&cache.mutex);
+    // cache.readcnt++;
+    // if (cache.readcnt == 1) {
+    //     printf("[Thread %u] :cache_get: sem_wait(&cache.w)\n", (unsigned int)pthread_self());
+    //   sem_wait(&cache.w);
+    // }
+    // printf("[Thread %u] :cache_get: readcnt = %d\n", (unsigned int)pthread_self(), cache.readcnt);
+    // printf("[Thread %u] :cache_get: sem_post(&cache.mutex)\n", (unsigned int)pthread_self());
+    // sem_post(&cache.mutex);
+
+    CacheObject *ptr = cache.head;
+    cout << "~~~~~~~ Looking for key " << ip << ":" << port << endl;
+    while (ptr != NULL) {
+      cout << "\tComparing cache key = " << ptr->siltip << ":" << ptr->port << endl;
+      cout << "\t" << ip.c_str() << endl;
+      if( (strcasecmp(ip.c_str(), ptr->siltip) == 0 ) && ( ptr->port == port)){
+        // Remove the node
+        if (ptr->prev != NULL){
+            ptr->prev->next = ptr->next;
+        }
+
+        if (ptr->next != NULL){
+          ptr->next->prev = ptr->prev;
+        }
+
+        if (cache.head == ptr){
+          cache.head = ptr->next;
+        }
+        cout << "\tDeleted cache key = " << bytes_to_hex(ptr->hash) << endl;
+        ret_obj = ptr;
+        break;
+      }
+      
+      ptr = ptr->next;
+    }
+    
+    // if (ret_obj != NULL)
+    //   cout << "\tfound key " << bytes_to_hex(key) << " at nodeid " << bytes_to_hex(ptr->hash) << endl;
+    // else
+    //   cout << "##### db missed" << endl;
+
+    // printf("[Thread %u] :cache_get: sem_wait(&cache.mutex)\n", (unsigned int)pthread_self());
+    // sem_wait(&cache.mutex); /* Lock mutex */
+    // cache.readcnt--;
+    // if (cache.readcnt == 0) {
+    //     printf("[Thread %u] :cache_get: sem_post(&cache.w)\n", (unsigned int)pthread_self());
+    //   sem_post(&cache.w);
+    // }
+    // printf("[Thread %u] :cache_get: readcnt = %d\n", (unsigned int)pthread_self(), cache.readcnt);
+    // sem_post(&cache.mutex); /* Unlock mutex */
+    // printf("[Thread %u] :cache_get: sem_post(&cache.mutex)\n", (unsigned int)pthread_self());
+
+
+    return ret_obj;
+  }
+
   /* Assume that there's no object with the same nodeid in the cache */
   int cache_insert(string ip, int port, size_t key_len) {
 
@@ -225,9 +311,14 @@ private:
     newobject->hash = (char *)calloc(1, MAX_KEY_LENGTH);  
     newobject->port = port;
     
-    char *cip = strdup(ip.c_str());
+    string ipport = ip;
+    ostringstream convert;
+    convert << port;
+    ipport.append(convert.str());
+    cout << "ip+port: " << ipport << endl;
+    char *cip = strdup(ipport.c_str());
     memcpy(newobject->siltip, cip, ip.size());
-    cout << "ip:" << ip <<  " vs " << newobject->siltip << endl;
+    // cout << "ip:" << ip <<  " vs " << newobject->siltip << endl;
 
     // (newobject->siltip)(ip);
     string key = HashUtil::MD5Hash(newobject->siltip, MAX_KEY_LENGTH);
@@ -339,7 +430,7 @@ private:
 
 
   void print_cache() {
-    printf("** Cache (size = %u) **\n", (unsigned int)cache.size);
+    printf("** Node ID List **\n");
     CacheObject *ptr = cache.head;
     while (ptr != NULL) {
       cout << "\t" << bytes_to_hex(ptr->hash) << endl;
