@@ -231,21 +231,6 @@ private:
     CacheObject *ret_obj = NULL;
     cout << "\tDeleting IP" << ip << ":" << port << endl;
 
-    // string ipport = ip;
-    // ostringstream convert;
-    // convert << port;
-    // ipport.append(convert.str());
-    // cout << "ip+port: " << ipport << endl;
-    // char *cip = strdup(ipport.c_str());
-    // char siltip[MAX_KEY_LENGTH];
-    // memcpy(siltip, cip, ip.size());
-    // // cout << "ip:" << ip <<  " vs " << newobject->siltip << endl;
-
-    // // (newobject->siltip)(ip);
-    // string key = HashUtil::MD5Hash(siltip, MAX_KEY_LENGTH);
-    // char *ckey = strdup(key.c_str());
-    // memcpy(newobject->nodeid, nodeid, strlen(nodeid));
-
     // printf("[Thread %u] :cache_get: sem_wait(&cache.mutex)\n", (unsigned int)pthread_self());
     // sem_wait(&cache.mutex);
     // cache.readcnt++;
@@ -264,6 +249,8 @@ private:
       cout << "\t" << ip.c_str() << endl;
       if( (strcasecmp(ip.c_str(), ptr->siltip) == 0 ) && ( ptr->port == port)){
         // Remove the node
+        
+
         if (ptr->prev != NULL){
             ptr->prev->next = ptr->next;
         }
@@ -272,11 +259,20 @@ private:
           ptr->next->prev = ptr->prev;
         }
 
+        if (ptr->prev == NULL && ptr->next == NULL){ // only one node
+          cache.head = NULL;
+          cache.tail = NULL;
+          // printf("+++++++++++++\n");
+        }
+
         if (cache.head == ptr){
           cache.head = ptr->next;
         }
+
         cout << "\tDeleted cache key = " << bytes_to_hex(ptr->hash) << endl;
+        free(ptr);
         ret_obj = ptr;
+        print_cache();
         break;
       }
       

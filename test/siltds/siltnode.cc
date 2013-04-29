@@ -42,6 +42,7 @@ int myPort;
 
 TThreadedServer *tserver;
 SiltClusterClient *client;
+boost::shared_ptr<TTransport> transport_ptr;
 
 class SiltNodeHandler : virtual public SiltNodeIf {
  public:
@@ -151,6 +152,7 @@ int join_cluster(){
     cout << "##### client connected to " << master_ip << ":" << master_port << endl;
   }
 
+  transport_ptr = transport;
   
   return rc;
 }
@@ -175,8 +177,11 @@ sigint_handler(int sig)
 {
   
   printf("\nReceived sigint_handler: %d for pid=%d\n", sig, getpid());
+  cout << "closing silt node..." << endl;
   client->leave(myIP, myPort);
+  transport_ptr->close();
   tserver->stop();
+  h->Close();
   return;
 }
 
