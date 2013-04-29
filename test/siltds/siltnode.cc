@@ -60,7 +60,7 @@ class SiltNodeHandler : virtual public SiltNodeIf {
 
   int32_t put(const std::string& key, const std::string& value) {
     // Your implementation goes here
-    // cout << "$$$ Client got PUT " << bytes_to_hex(key) << " -> " << bytes_to_hex(value) << endl;
+    cout << "$$$ Client got PUT " << bytes_to_hex(key) << " -> " << bytes_to_hex(value) << endl;
 
     FawnDS_Return ret = h->Put(ConstRefValue(key.c_str(), key.size()), ConstRefValue(value.c_str(), value.size()));
     if (ret != silt::OK) {
@@ -76,7 +76,7 @@ class SiltNodeHandler : virtual public SiltNodeIf {
 
   void get(std::string& _return, const std::string& key) {
     // Your implementation goes here
-    // cout << "$$$ Client got GET " << bytes_to_hex(key) << endl;
+    cout << "$$$ Client got GET " << bytes_to_hex(key) << endl;
     Value ret_data;
     ret_data.resize(0);
 
@@ -182,6 +182,7 @@ sigint_handler(int sig)
   transport_ptr->close();
   tserver->stop();
   h->Close();
+  delete h;
   return;
 }
 
