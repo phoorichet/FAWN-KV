@@ -51,16 +51,12 @@ class SiltNodeHandler : virtual public SiltNodeIf {
   }
 
   int32_t connect_master(const std::string& ip, const int32_t port) {
-    // Your implementation goes here
     printf("connect_master\n");
-
-
     return 0;
   }
 
   int32_t put(const std::string& key, const std::string& value) {
-    // Your implementation goes here
-    cout << "$$$ Client got PUT " << bytes_to_hex(key) << " -> " << bytes_to_hex(value) << endl;
+    // cout << "$$$ Client got PUT " << bytes_to_hex(key) << " -> " << bytes_to_hex(value) << endl;
 
     FawnDS_Return ret = h->Put(ConstRefValue(key.c_str(), key.size()), ConstRefValue(value.c_str(), value.size()));
     if (ret != silt::OK) {
@@ -70,13 +66,13 @@ class SiltNodeHandler : virtual public SiltNodeIf {
           << endl;
       //exit(1);
     } 
-
+    
     return 0;
   }
 
   void get(std::string& _return, const std::string& key) {
     // Your implementation goes here
-    cout << "$$$ Client got GET " << bytes_to_hex(key) << endl;
+    // cout << "$$$ Client got GET " << bytes_to_hex(key) << endl;
     Value ret_data;
     ret_data.resize(0);
 
@@ -230,10 +226,10 @@ int main(int argc, char **argv) {
     }
 
 
-              tserver =  new TThreadedServer(processor,
-                           serverTransport,
-                           transportFactory,
-                           protocolFactory);
+    tserver =  new TThreadedServer(processor,
+                 serverTransport,
+                 transportFactory,
+                 protocolFactory);
 
     // TSimpleServer server(processor, serverTransport, transportFactory, protocolFactory);
     cout << "##### Running on port " << myPort << endl;
