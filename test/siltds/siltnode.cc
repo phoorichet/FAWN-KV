@@ -18,6 +18,9 @@
 
 #include "SiltCluster.h"
 #include "fawnds_factory.h"
+#include "rate_limiter.h"
+#include "global_limits.h"
+#include "datastat.h"
 #include "print.h"
 #include <signal.h>
 #include "csapp.h"
@@ -44,10 +47,19 @@ TThreadedServer *tserver;
 SiltClusterClient *client;
 boost::shared_ptr<TTransport> transport_ptr;
 
+int64_t max_ops_per_sec = 1000000000L;
+int64_t convert_rate = 1000000000L;
+int64_t merge_rate = 1000000000L;
+double successful_get_ratio = 1.;
+
+RateLimiter *rate_limiter;
+
 class SiltNodeHandler : virtual public SiltNodeIf {
  public:
   SiltNodeHandler() {
     // Your initialization goes here
+
+    sem_init(&mutex_w, 0, 1);
   }
 
   int32_t connect_master(const std::string& ip, const int32_t port) {
@@ -58,7 +70,10 @@ class SiltNodeHandler : virtual public SiltNodeIf {
   int32_t put(const std::string& key, const std::string& value) {
     // cout << "$$$ Client got PUT " << bytes_to_hex(key) << " -> " << bytes_to_hex(value) << endl;
 
+    // sem_wait(&mutex_w);
     FawnDS_Return ret = h->Put(ConstRefValue(key.c_str(), key.size()), ConstRefValue(value.c_str(), value.size()));
+    // sem_post(&mutex_w);
+    
     if (ret != silt::OK) {
       cout << "error! h->PUT() return key=" << bytes_to_hex(key) 
           <<  " value=" <<  bytes_to_hex(value) 
@@ -66,7 +81,8 @@ class SiltNodeHandler : virtual public SiltNodeIf {
           << endl;
       //exit(1);
     } 
-    
+
+
     return 0;
   }
 
@@ -94,6 +110,9 @@ class SiltNodeHandler : virtual public SiltNodeIf {
       
     return;
   }
+
+private:
+  sem_t mutex_w;
 
 };
 
@@ -210,13 +229,18 @@ int main(int argc, char **argv) {
   Signal(SIGINT,  sigint_handler);   /* ctrl-c */
 
   try{
+
+    // GlobalLimits::instance().set_convert_rate(convert_rate);
+    // GlobalLimits::instance().set_merge_rate(merge_rate);
+    // rate_limiter = new RateLimiter(0, max_ops_per_sec, 1, 1000000000L / max_ops_per_sec);    
+    // GlobalLimits::instance().enable();
+
     // Create silt database
     h = silt::FawnDS_Factory::New(xmlconfig); // test_num_records_
     if (h->Create() != silt::OK) {
           cout << "cannot create FAWNDS!" << endl;
           exit(0);
     }
-
 
     // Join the cluster
     if (join_cluster() != 0)

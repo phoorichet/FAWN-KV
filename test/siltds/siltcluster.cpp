@@ -2,6 +2,7 @@
 // You should copy it to another filename to avoid overwriting it.
 
 #include "SiltCluster.h"
+#include "SiltNode.h"
 #include <thrift/protocol/TBinaryProtocol.h>
 #include <thrift/server/TSimpleServer.h>
 #include <thrift/transport/TServerSocket.h>
@@ -10,7 +11,6 @@
 #include <thrift/server/TThreadedServer.h>
 #include <thrift/concurrency/ThreadManager.h>
 #include <thrift/concurrency/PosixThreadFactory.h>
-
 #include <thrift/transport/TSocket.h>
 #include <thrift/transport/TBufferTransports.h>
 #include <thrift/protocol/TBinaryProtocol.h>
@@ -36,6 +36,7 @@ using boost::shared_ptr;
 using namespace  ::silt;
 using namespace std;
 
+
 class SiltClusterHandler : virtual public SiltClusterIf {
  public:
   SiltClusterHandler() {
@@ -47,7 +48,7 @@ class SiltClusterHandler : virtual public SiltClusterIf {
     // client = new SiltClusterClient(protocol);
     // transport->open();
     
-
+    sem_init(&t_mutex, 0 ,1);
     cache_init();
   }
 
@@ -71,29 +72,41 @@ class SiltClusterHandler : virtual public SiltClusterIf {
   }
 
   int32_t put(const std::string& key, const std::string& value) {
-    // Your implementation goes here
-    // printf("put\n");
     // cout << "PUT " << bytes_to_hex(key) << " -> " << bytes_to_hex(value) << endl;
     int32_t rc = -1;
 
     CacheObject *cacheobj = cache_get(key);
     if (cacheobj != NULL){
 
-      // cout << "FOUND at IP: " << cacheobj->siltip << endl;
-      if (cacheobj->client == NULL){
-        boost::shared_ptr<TSocket> socket(new TSocket(cacheobj->siltip, cacheobj->port));
-        boost::shared_ptr<TTransport> transport(new TBufferedTransport(socket));
-        boost::shared_ptr<TProtocol> protocol(new TBinaryProtocol(transport));
+      // cout << "FOUND at IP: " << cacheobj->siltip << ":" << cacheobj->port << endl;
+      if (cacheobj->siltnode == NULL){
+        // sem_wait(&t_mutex);
+        shared_ptr<TSocket> socket(new TSocket(cacheobj->siltip, cacheobj->port));
+        shared_ptr<TTransport> transport(new TBufferedTransport(socket));
+        shared_ptr<TProtocol> protocol(new TBinaryProtocol(transport));
         
-        cacheobj->client = new SiltClusterClient(protocol);
+        cacheobj->siltnode = new SiltNodeClient(protocol);
+        
         sem_init(&(cacheobj->client_w), 0, 1);
+        sem_init(&(cacheobj->client_r), 0, 1);
+        sem_init(&(cacheobj->count_put_w), 0, 1);
+        sem_init(&(cacheobj->count_get_w), 0, 1);
 
         transport->open();
+        cout << "Open transport to :" << cacheobj->siltip << ":"
+            << cacheobj->port << endl;
 
+        // sem_post(&t_mutex);
       }
+      
       sem_wait(&(cacheobj->client_w)); /* Lock mutex */
-      rc = cacheobj->client->put(key, value);
+      rc = cacheobj->siltnode->put(key, value);
       sem_post(&(cacheobj->client_w)); /* Unlock mutex */
+
+      sem_wait(&(cacheobj->count_put_w)); /* Lock mutex */
+      cacheobj->count_put++;
+      sem_post(&(cacheobj->count_put_w)); /* Unlock mutex */
+      
     }
 
     // return client->put(key, value);
@@ -101,44 +114,67 @@ class SiltClusterHandler : virtual public SiltClusterIf {
   }
 
   void get(std::string& _return, const std::string& key) {
-    // Your implementation goes here
-    // cout << "PUT " << bytes_to_hex(key) << endl;
+    // cout << "GET " << bytes_to_hex(key) << endl;
     int32_t rc = -1;
     CacheObject *cacheobj = cache_get(key);
     if (cacheobj != NULL){
 
       // cout << "FOUND at IP: " << cacheobj->siltip << endl;
-      if (cacheobj->client == NULL){
+      if (cacheobj->siltnode == NULL){
         boost::shared_ptr<TSocket> socket(new TSocket(cacheobj->siltip, cacheobj->port));
         boost::shared_ptr<TTransport> transport(new TBufferedTransport(socket));
         boost::shared_ptr<TProtocol> protocol(new TBinaryProtocol(transport));
         
-        cacheobj->client = new SiltClusterClient(protocol);
+        cacheobj->siltnode = new SiltNodeClient(protocol);
         sem_init(&(cacheobj->client_r), 0, 1);
-
+        sem_init(&(cacheobj->client_w), 0, 1);
+        sem_init(&(cacheobj->count_put_w), 0, 1);
+        sem_init(&(cacheobj->count_get_w), 0, 1);
+        cacheobj->count_get = 0;
+        cacheobj->count_get = 0;
+        cout << "Opening connection" << cacheobj->siltip << ":" << cacheobj->port << endl;
         transport->open();
+        cout << "open connection to :" << cacheobj->siltip << ":" << cacheobj->port << endl;
 
       }
-      // sem_wait(&(cacheobj->client_r)); /* Lock mutex */
-      cacheobj->client->get(_return, key);
-      // sem_post(&(cacheobj->client_r)); /* Unlock mutex */
+
+      // cout << "^^^^^^^^^^^1^^^^^^^^^^^^^^" << endl;
+      sem_wait(&(cacheobj->client_r)); /* Lock mutex */
+      cacheobj->siltnode->get(_return, key);
+      sem_post(&(cacheobj->client_r)); /* Unlock mutex */
+      // cout << "^^^^^^^^^^^2^^^^^^^^^^^^^^" << endl;
+      sem_wait(&(cacheobj->count_get_w)); /* Lock mutex */
+      cacheobj->count_get++;
+      sem_post(&(cacheobj->count_get_w)); /* Unlock mutex */
     }
 
     return;
 
   }
-private:
-  SiltClusterClient *client;
 
+  int32_t info() {
+    CacheObject *ptr = cache.head;
+    cout << "~~~~~~~ INFO ~~~~~~" << endl;
+    while (ptr != NULL) {
+      cout << "IP = " << ptr->siltip << ":" << ptr->port 
+            << " PUT: " << ptr->count_put << " GET:" << ptr->count_get << endl;
+      ptr = ptr->next;
+    }
+    return 0;
+  }
+
+private:
+  // SiltClusterClient *client;
+  sem_t t_mutex;
 
   struct cacheobject_t {
     struct cacheobject_t *prev, *next;
     char siltip[20];
     int port;
     char *hash;
-    SiltClusterClient *client;
-    sem_t client_w, client_r;
-    // boost::shared_ptr<TTransport> *transport;
+    SiltNodeClient *siltnode;
+    sem_t client_w, client_r, count_put_w, count_get_w;
+    int count_put, count_get;
   };
   typedef struct cacheobject_t CacheObject;
 
@@ -175,6 +211,8 @@ private:
     // printf("[Thread %u] :cache_get: sem_post(&cache.mutex)\n", (unsigned int)pthread_self());
     // sem_post(&cache.mutex);
 
+
+
     CacheObject *ptr = cache.head;
     // cout << "~~~~~~~ Looking for key " << bytes_to_hex(key) << endl;
     while (ptr != NULL) {
@@ -204,7 +242,7 @@ private:
       
       ptr = ptr->next;
     }
-    
+
     // if (ret_obj != NULL)
     //   cout << "\tfound key " << bytes_to_hex(key) << " at nodeid " << bytes_to_hex(ptr->hash) << endl;
     // else
@@ -221,7 +259,7 @@ private:
     // sem_post(&cache.mutex); /* Unlock mutex */
     // printf("[Thread %u] :cache_get: sem_post(&cache.mutex)\n", (unsigned int)pthread_self());
 
-    assert(ret_obj != NULL);
+    // assert(ret_obj != NULL);
 
     return ret_obj;
   }
@@ -316,7 +354,7 @@ private:
     // cout << "ip:" << ip <<  " vs " << newobject->siltip << endl;
 
     // (newobject->siltip)(ip);
-    string key = HashUtil::MD5Hash(newobject->siltip, MAX_KEY_LENGTH);
+    string key = HashUtil::MD5Hash(cip, MAX_KEY_LENGTH);
     char *ckey = strdup(key.c_str());
     // memcpy(newobject->nodeid, nodeid, strlen(nodeid));
     memcpy(newobject->hash, ckey, MAX_KEY_LENGTH);
@@ -336,9 +374,9 @@ private:
       /* Seach for the node that has nodeid < the given nodeid and 
                     the next nodeid > the given nodeid */
       CacheObject *ptr = cache.head;
-        cout<< "~~~~~~~ Looking for hash = " << bytes_to_hex(newobject->hash) << endl;
+        // cout<< "~~~~~~~ Looking for hash = " << bytes_to_hex(newobject->hash) << endl;
         while (ptr != NULL) {
-          cout<< "\tLooking for hash = " << bytes_to_hex(ptr->hash) << endl;
+          // cout<< "\tLooking for hash = " << bytes_to_hex(ptr->hash) << endl;
           /* Look for a cache object with the same nodeid.
             When found, move this object to the tail.
             Then return this object. */
@@ -428,7 +466,8 @@ private:
     printf("** Node ID List **\n");
     CacheObject *ptr = cache.head;
     while (ptr != NULL) {
-      cout << "\t" << bytes_to_hex(ptr->hash) << endl;
+      cout << "\t" << ptr->siltip << ":" << ptr->port << "-"
+      << bytes_to_hex(ptr->hash) << endl;
       ptr = ptr->next;
     }
     printf("** end **\n");
