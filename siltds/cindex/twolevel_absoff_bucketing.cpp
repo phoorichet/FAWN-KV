@@ -40,12 +40,15 @@ namespace cindex
 	{
 		assert(current_i_ < size_);
 
+		
 		std::size_t base_index_offset = upper_index_offset(current_i_ / upper_bucket_size_);
 		std::size_t base_dest_offset = upper_dest_offset(current_i_ / upper_bucket_size_);
 
-		// std::cout << "i: " << current_i_ << std::endl;
+		// std::cout << "i: " << current_i_ << " size:" << size_ << std::endl;
 		// std::cout << "base: " << base_index_offset << " " << base_dest_offset << std::endl;
 		// std::cout << "current: " << index_offset << " " << dest_offset << std::endl;
+
+		// std::cout << "size of index_offset:" << sizeof(index_offset) << " size of upper_value_type" << sizeof(upper_value_type);
 
 		bucket_info_[current_i_][0] = guarded_cast<value_type>(index_offset - base_index_offset);
 		bucket_info_[current_i_][1] = guarded_cast<value_type>(dest_offset - base_dest_offset);
@@ -53,8 +56,10 @@ namespace cindex
 		upper_bucket_info_[current_i_ / upper_bucket_size_ + 1][1] = guarded_cast<upper_value_type>(dest_offset);
 
 		// LOCK FIX boost::numeric::positive_overflow
+		// cout << this->index_offset(current_i_) << " vs " << index_offset << endl;
+		// cout << "sz==size_" << sizeof(this->index_offset(current_i_)) << endl;
 		// assert(this->index_offset(current_i_) == index_offset);
-		// assert(this->dest_offset(current_i_) == dest_offset);
+		assert(this->dest_offset(current_i_) == dest_offset);
 
 		current_i_++;
 	}

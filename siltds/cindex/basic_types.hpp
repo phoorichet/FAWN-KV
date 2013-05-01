@@ -13,7 +13,9 @@ namespace cindex
 	template<typename T, typename S>
 	inline T guarded_cast(const S& v)
 	{
-    cout << "converting " << v << "->" << static_cast<T>(v) << endl;
+    // std::cout << "size of S:" << sizeof(S) << " size of T" << sizeof(T) << endl;
+    // cout << "converting " << v << "->" << static_cast<T>(v) << endl;
+
 // #ifndef NDEBUG
 // //     T ret = boost::numeric::converter<T, S>::convert(v); 
 // //     cout<< "++++++++++++0000+++++++++++++++"<< ret <<endl;
