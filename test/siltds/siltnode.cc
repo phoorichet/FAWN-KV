@@ -75,10 +75,10 @@ class SiltNodeHandler : virtual public SiltNodeIf {
     // sem_post(&mutex_w);
 
     if (ret != silt::OK) {
-      cout << "error! h->PUT() return key=" << bytes_to_hex(key) 
-          <<  " value=" <<  bytes_to_hex(value) 
-          << " ret=" << ret 
-          << endl;
+      // cout << "error! h->PUT() return key=" << bytes_to_hex(key) 
+      //     <<  " value=" <<  bytes_to_hex(value) 
+      //     << " ret=" << ret 
+      //     << endl;
       //exit(1);
     } 
 
@@ -101,10 +101,10 @@ class SiltNodeHandler : virtual public SiltNodeIf {
     FawnDS_Return ret = h->Get(ConstRefValue(key.c_str(), key.size()), ret_data);
      _return = string(ret_data.data());
     if (ret != silt::OK) {
-      cout << "error! h->GET() return key=" << bytes_to_hex(key) 
-          <<  " value=" <<  bytes_to_hex(_return.c_str()) 
-          << " ret=" << ret 
-          << endl;
+      // cout << "error! h->GET() return key=" << bytes_to_hex(key) 
+      //     <<  " value=" <<  bytes_to_hex(_return.c_str()) 
+      //     << " ret=" << ret 
+      //     << endl;
       //exit(1);
     } 
       
