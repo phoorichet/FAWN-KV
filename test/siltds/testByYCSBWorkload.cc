@@ -104,13 +104,18 @@ void *query_sender(void * id) {
     boost::shared_ptr<TTransport> transport(new TBufferedTransport(socket));
     boost::shared_ptr<TProtocol> protocol(new TBinaryProtocol(transport));
     
+
     SiltClusterClient *client;
     client = new SiltClusterClient(protocol);
-    transport->open();
+    try {
+        transport->open();
+    } catch (TException &tx) {
+        cerr << "Caught Exception" << endl;
+    }
 
-    cout << "##### client connected to " << master_ip << ":" << master_port << endl;
-    char* chr = "A";
-    while (1) {
+    cout << "[query_sender"<< t << "] client connected to " << master_ip << ":" << master_port << endl;
+    char chr[] = "A";
+    while (1 && transport->isOpen()) {
 
         pthread_mutex_lock(&query_lock);
 
@@ -215,9 +220,11 @@ void *query_sender(void * id) {
         }
     } /* end of while (done) */
 
+    client->info();
     transport->close();
     printf("killing thread: query_sender%ld!\n", t);
     pthread_exit(NULL);
+  
 } /* end of query_sender */
 
 
@@ -281,7 +288,8 @@ void replay(string recfile) {
     // h->Flush();
     // sleep(10);  // these sleep() gives time for FawnDS_Monitor to print status messages after the store reaches a steady state
     // sync();
-    // sleep(5);
+    cout << "sleep..." << endl;
+    sleep(5);
 }
 
 
@@ -347,9 +355,9 @@ int main(int argc, char **argv) {
     rate_limiter = new RateLimiter(0, max_ops_per_sec, 1, 1000000000L / max_ops_per_sec);    
     GlobalLimits::instance().enable();
 
-    cout << "process transaction ... " << endl;
-    replay(trans_workload + ".trans");
-    cout << "process transaction ... done" << endl;
+    // cout << "process transaction ... " << endl;
+    // replay(trans_workload + ".trans");
+    // cout << "process transaction ... done" << endl;
 
     delete rate_limiter;
 
