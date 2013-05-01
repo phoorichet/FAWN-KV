@@ -59,7 +59,7 @@ namespace cindex
 		// cout << this->index_offset(current_i_) << " vs " << index_offset << endl;
 		// cout << "sz==size_" << sizeof(this->index_offset(current_i_)) << endl;
 		// assert(this->index_offset(current_i_) == index_offset);
-		assert(this->dest_offset(current_i_) == dest_offset);
+		// assert(this->dest_offset(current_i_) == dest_offset);
 
 		current_i_++;
 	}
