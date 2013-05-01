@@ -237,8 +237,8 @@ int main(int argc, char **argv) {
 
     // Create silt database
     h = silt::FawnDS_Factory::New(xmlconfig); // test_num_records_
-    if (h->Create() != silt::OK) {
-          cout << "cannot create FAWNDS!" << endl;
+    if (h->Open() != silt::OK) {
+          cout << "cannot open FAWNDS!" << endl;
           exit(0);
     }
 
