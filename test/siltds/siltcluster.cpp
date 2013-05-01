@@ -99,9 +99,9 @@ class SiltClusterHandler : virtual public SiltClusterIf {
         // sem_post(&t_mutex);
       }
       
-      sem_wait(&(cacheobj->client_w)); /* Lock mutex */
+      // sem_wait(&(cacheobj->client_w)); /* Lock mutex */
       rc = cacheobj->siltnode->put(key, value);
-      sem_post(&(cacheobj->client_w)); /* Unlock mutex */
+      // sem_post(&(cacheobj->client_w)); /* Unlock mutex */
 
       sem_wait(&(cacheobj->count_put_w)); /* Lock mutex */
       cacheobj->count_put++;
